@@ -1,0 +1,256 @@
+---
+title: "Getting Started with retrosheetshow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with retrosheetshow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo = FALSE, message = FALSE}
+library(tibble)
+library(dplyr)
+```
+
+> **RETROSHEET DATA NOTICE**
+>
+> The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
+
+## Introduction
+
+**retrosheetshow** provides a convenient and tidy interface for accessing [Retrosheet](https://www.retrosheet.org) baseball data in R. This vignette will get you started with the basic functionality.
+
+```{r setup, eval = FALSE}
+library(retrosheetshow)
+library(dplyr)
+```
+
+## Quick Start
+
+### List Available Data
+
+Use `list_events()` to discover what data is available:
+
+```{r, eval = FALSE}
+# List recent regular season files
+list_events(year = 2020:2024)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~year, ~type, ~url,
+  2020, "regular", "https://www.retrosheet.org/events/2020eve.zip",
+  2021, "regular", "https://www.retrosheet.org/events/2021eve.zip",
+  2022, "regular", "https://www.retrosheet.org/events/2022eve.zip",
+  2023, "regular", "https://www.retrosheet.org/events/2023eve.zip",
+  2024, "regular", "https://www.retrosheet.org/events/2024eve.zip"
+) |>
+  knitr::kable()
+```
+
+### Download Play-by-Play Events
+
+```{r, eval = FALSE}
+# Download 2024 regular season
+# First time: ~2 minutes (downloads and caches)
+# Subsequent times: ~5 seconds (uses cache)
+events_2024 <- get_events(year = 2024)
+```
+
+**Note**: Files are automatically cached for fast repeated access!
+
+### Extract Game Information
+
+```{r, eval = FALSE}
+# Get game-level metadata
+games <- get_game_info(events_2024)
+head(games)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~game_id, ~date, ~visiting_team, ~home_team, ~site,
+  "NYA202403280", "2024/03/28", "HOU", "NYA", "NYA03",
+  "TOR202403280", "2024/03/28", "TB", "TOR", "TOR02",
+  "MIN202403280", "2024/03/28", "KC", "MIN", "MIN04",
+  "DET202403280", "2024/03/28", "CHA", "DET", "DET08"
+) |>
+  knitr::kable(caption = "Sample Game Information")
+```
+
+```{r, eval = FALSE}
+# Get play-by-play data
+plays <- get_plays(events_2024)
+head(plays)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~game_id, ~inning, ~batting_team, ~batter_id, ~count, ~event,
+  "NYA202403280", 1, "HOU", "altuj001", "22", "K",
+  "NYA202403280", 1, "HOU", "bregm001", "00", "8/F",
+  "NYA202403280", 1, "HOU", "alvay001", "12", "S7",
+  "NYA202403280", 1, "HOU", "tucke001", "11", "D9"
+) |>
+  knitr::kable(caption = "Sample Play-by-Play Data")
+```
+
+## Game Logs (Faster Alternative)
+
+For summary statistics without full play-by-play detail:
+
+```{r, eval = FALSE}
+# Download game logs (much faster than events)
+gamelogs_2024 <- get_gamelogs(year = 2024)
+head(gamelogs_2024)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~date, ~visiting_team, ~home_team, ~visiting_score, ~home_score, ~winning_pitcher_name, ~attendance,
+  "20240328", "HOU", "NYA", "3", "5", "Cole,Gerrit", "47858",
+  "20240328", "TB", "TOR", "4", "6", "Berrios,Jose", "46571",
+  "20240328", "KC", "MIN", "2", "4", "Ryan,Joe", "38277",
+  "20240328", "CHA", "DET", "1", "3", "Skubal,Tarik", "42028"
+) |>
+  knitr::kable(caption = "Sample 2024 Game Logs")
+```
+
+```{r, eval = FALSE}
+# Calculate home field advantage
+gamelogs_2024 |>
+  mutate(
+    home_won = as.numeric(home_score) > as.numeric(visiting_score)
+  ) |>
+  summarize(
+    home_win_pct = mean(home_won)
+  )
+```
+
+```{r, echo = FALSE}
+tibble(home_win_pct = 0.538) |>
+  knitr::kable(caption = "Home Field Advantage in 2024")
+```
+
+## Team Rosters
+
+```{r, eval = FALSE}
+# Get all 2024 rosters
+rosters <- get_rosters(year = 2024)
+head(rosters)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~player_id, ~last_name, ~first_name, ~bats, ~throws, ~team, ~position,
+  "judga001", "Judge", "Aaron", "R", "R", "NYA", "OF",
+  "sotoj001", "Soto", "Juan", "L", "L", "NYA", "OF",
+  "coleg001", "Cole", "Gerrit", "R", "R", "NYA", "P",
+  "stant001", "Stanton", "Giancarlo", "R", "R", "NYA", "DH"
+) |>
+  knitr::kable(caption = "Sample Yankees Roster for 2024")
+```
+
+## Game Schedules
+
+```{r, eval = FALSE}
+# Get 2024 schedule
+schedule <- get_schedules(year = 2024)
+head(schedule)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~date, ~game_number, ~day_of_week, ~visiting_team, ~home_team, ~game_time,
+  "20240328", "0", "Thursday", "HOU", "NYA", "19:05",
+  "20240328", "0", "Thursday", "TB", "TOR", "19:07",
+  "20240328", "0", "Thursday", "KC", "MIN", "13:10",
+  "20240328", "0", "Thursday", "CHA", "DET", "13:10"
+) |>
+  knitr::kable(caption = "Sample 2024 Schedule")
+```
+
+## Reference Data
+
+```{r, eval = FALSE}
+# Get ballpark codes
+parks <- get_park_ids()
+head(parks)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~park_id, ~name, ~aka, ~city, ~state, ~start, ~end,
+  "ATL04", "Truist Park", "SunTrust Park", "Atlanta", "GA", "04/14/2017", "",
+  "BAL13", "Oriole Park at Camden Yards", "", "Baltimore", "MD", "04/06/1992", "",
+  "BOS07", "Fenway Park", "", "Boston", "MA", "04/20/1912", "",
+  "NYA03", "Yankee Stadium", "", "Bronx", "NY", "04/16/2009", ""
+) |>
+  knitr::kable(caption = "Sample Ballpark Reference Data")
+```
+
+## Cache Management
+
+```{r, eval = FALSE}
+# View cached files
+cache_status()
+
+# Clear cache to free space
+clear_cache()
+
+# Disable caching temporarily
+use_cache(FALSE)
+```
+
+## Next Steps
+
+- See the **Game Logs, Rosters & Schedules** article for more examples
+- Read the **Performance Guide** for optimization tips
+- Check the **Retrosheet Format Reference** to understand the data structure
+- Browse the **Reference** documentation for all available functions
+
+## Complete Example
+
+```{r, eval = FALSE}
+library(retrosheetshow)
+library(dplyr)
+
+# Get 2024 data
+gamelogs <- get_gamelogs(year = 2024)
+rosters <- get_rosters(year = 2024)
+
+# Analyze Yankees
+yankees_games <- gamelogs |>
+  filter(home_team == "NYA" | visiting_team == "NYA") |>
+  mutate(
+    yankees_score = if_else(home_team == "NYA", 
+                            as.numeric(home_score), 
+                            as.numeric(visiting_score)),
+    opponent_score = if_else(home_team == "NYA",
+                             as.numeric(visiting_score),
+                             as.numeric(home_score)),
+    won = yankees_score > opponent_score
+  )
+
+# Win percentage
+yankees_games |>
+  summarize(
+    games = n(),
+    wins = sum(won),
+    win_pct = mean(won)
+  )
+```
+
+## Attribution
+
+Remember to cite Retrosheet when using this data:
+
+> The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
+

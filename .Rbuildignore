@@ -1,2 +1,11 @@
-^retrosheetshow\.Rproj$
+^.*\.Rproj$
 ^\.Rproj\.user$
+^README\.Rmd$
+^LICENSE\.md$
+^\.github$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.git$
+^\.gitignore$
+^cran-comments\.md$

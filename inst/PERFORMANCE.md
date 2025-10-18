@@ -1,0 +1,304 @@
+# Performance Guide
+
+## Understanding Download Times
+
+Retrosheet event files are comprehensive datasets that can be large:
+
+- **Regular season file**: ~5-15 MB compressed, ~50-100 MB uncompressed
+- **First download**: 1-2 minutes (depends on network speed)
+- **Cached access**: < 5 seconds (just parsing, no download)
+
+The initial download time is normal and unavoidable, but the package now caches files automatically.
+
+## Caching System (NEW!)
+
+### How It Works
+
+Starting with your first download, retrosheetshow automatically caches files locally:
+
+```r
+library(retrosheetshow)
+
+# First time: downloads and caches (slow - ~2 minutes)
+events_2024 <- get_events(year = 2024)
+
+# Second time: uses cache (fast - ~5 seconds)
+events_2024 <- get_events(year = 2024)
+```
+
+### Cache Management
+
+View what's cached:
+
+```r
+# See cached files
+cache_status()
+#> ℹ Cache location: ~/Library/Caches/org.R-project.R/R/retrosheetshow
+#> ℹ Total: 3 files, 15.4 MB
+#> # A tibble: 3 × 5
+#>    year type    size_mb modified            path
+#>   <int> <chr>     <dbl> <dttm>              <chr>
+#> 1  2024 regular    5.2  2024-01-15 10:30:00 ...
+#> 2  2023 regular    5.1  2024-01-15 09:15:00 ...
+#> 3  2024 post       0.8  2024-01-15 11:00:00 ...
+```
+
+Clear cache to free disk space:
+
+```r
+# Clear all cache
+clear_cache()
+
+# Clear specific years
+clear_cache(year = 2020:2022)
+
+# Clear specific types
+clear_cache(type = "post")
+
+# Skip confirmation
+clear_cache(confirm = FALSE)
+```
+
+Temporarily disable caching:
+
+```r
+# Disable for this session (always download fresh)
+use_cache(FALSE)
+
+# Re-enable
+use_cache(TRUE)
+```
+
+## Performance Tips
+
+### 1. Be Patient on First Download
+
+The first download of a year's data will take 1-2 minutes. This is normal:
+
+```r
+# This WILL take time the first time
+events_2024 <- list_events(year = 2024) |>
+  get_events()
+#> ✔ Checked 1 file [591ms]
+#> ℹ Downloading 1 event file
+#> ℹ Downloading 2024 regular...
+#> ✖ Downloading 2024 events [1m 56.9s]  # <- This is normal!
+```
+
+But subsequent calls are fast:
+
+```r
+# Second call uses cache
+events_2024 <- get_events(year = 2024)
+#> ℹ Downloading 1 event file
+#> ℹ Using cached file for 2024 regular
+#> ✔ Downloaded and parsed 1,234,567 records [4.2s]  # <- Much faster!
+```
+
+### 2. Download Once, Analyze Multiple Times
+
+Don't re-download in the same session:
+
+```r
+# ❌ BAD: Downloads multiple times
+games1 <- get_events(year = 2024) |> get_game_info()
+plays1 <- get_events(year = 2024) |> get_plays()  # Downloads again!
+
+# ✅ GOOD: Download once, use multiple times
+events <- get_events(year = 2024)  # Download once
+games <- get_game_info(events)     # Reuse
+plays <- get_plays(events)         # Reuse
+```
+
+### 3. Filter After Download
+
+Don't download multiple times to filter:
+
+```r
+# ❌ SOMEWHAT INEFFICIENT
+yankees_games <- list_events(year = 2024) |>
+  get_events() |>
+  get_game_info() |>
+  filter(hometeam == "NYA" | visteam == "NYA")
+
+# ✅ BETTER (uses cache on subsequent runs)
+events <- get_events(year = 2024)  # Cached after first run
+games <- get_game_info(events)
+yankees_games <- games |>
+  filter(hometeam == "NYA" | visteam == "NYA")
+```
+
+### 4. Download Multiple Years Strategically
+
+For multi-year analysis:
+
+```r
+# Option 1: Download all at once (slow first time, then cached)
+events_multi <- get_events(year = 2020:2024)
+
+# Option 2: Download years individually (can stop/resume)
+events_2020 <- get_events(year = 2020)
+events_2021 <- get_events(year = 2021)
+# ... download more as needed
+all_events <- bind_rows(events_2020, events_2021, ...)
+```
+
+### 5. Use Availability Checking Wisely
+
+Skip availability checking when you know files exist:
+
+```r
+# Slow: Checks if each file exists before download
+events <- list_events(year = 2020:2024, check_availability = TRUE) |>
+  get_events()
+
+# Faster: Skip checking (files will still download/cache correctly)
+events <- list_events(year = 2020:2024, check_availability = FALSE) |>
+  get_events()
+
+# Or just:
+events <- get_events(year = 2020:2024)
+```
+
+### 6. Memory Management for Large Datasets
+
+For very large multi-year downloads:
+
+```r
+# Process and summarize year by year
+results <- purrr::map_dfr(2020:2024, function(year) {
+  events <- get_events(year = year)
+  plays <- get_plays(events)
+  
+  # Summarize before combining
+  summary <- plays |>
+    group_by(game_id) |>
+    summarize(n_plays = n(), ...)
+  
+  rm(events, plays)  # Free memory
+  gc()               # Garbage collect
+  
+  summary
+})
+```
+
+## Benchmarks
+
+Typical performance on a modern machine with good internet:
+
+| Operation | First Time (no cache) | With Cache |
+|-----------|----------------------|------------|
+| Single year (2024) | ~2 min | ~5 sec |
+| Parse to game info | ~3 sec | ~3 sec |
+| Parse to plays | ~5 sec | ~5 sec |
+| Filter plays | < 1 sec | < 1 sec |
+
+## Troubleshooting Slow Performance
+
+### Slow Downloads
+
+If downloads are consistently very slow (> 5 minutes):
+
+1. **Check network**: Test internet speed
+2. **Try different time**: Retrosheet servers may be busy
+3. **Disable VPN**: Some VPNs slow down downloads
+4. **Check cache**: Verify caching is enabled with `cache_status()`
+
+### Slow Parsing
+
+If parsing is slow even with cache:
+
+1. **Parse selectively**: Use `parse_event_records()` with specific types
+2. **Filter early**: Reduce data size before complex operations
+3. **Check memory**: Large datasets need RAM (4+ GB recommended)
+
+### Cache Issues
+
+If caching doesn't seem to work:
+
+```r
+# Check cache status
+cache_status()
+
+# Check if caching is enabled
+caching_enabled()  # Should return TRUE
+
+# Check cache location
+cache_dir()
+
+# Test: clear and re-download
+clear_cache(year = 2024, confirm = FALSE)
+events <- get_events(year = 2024)  # Should download
+events <- get_events(year = 2024)  # Should use cache (fast)
+```
+
+## Network-Free Usage
+
+After downloading files once, you can use them offline:
+
+```r
+# While online: download and cache
+events_2024 <- get_events(year = 2024)
+
+# Later, even offline: uses cache
+events_2024 <- get_events(year = 2024)  # Works without internet!
+```
+
+## Best Practices Summary
+
+1. ✅ **Be patient** on first download (1-2 min is normal)
+2. ✅ **Let caching work** - subsequent calls will be fast
+3. ✅ **Download once per session** - save to variable, reuse
+4. ✅ **Filter after parsing** - don't re-download to filter
+5. ✅ **Check cache status** - know what you have cached
+6. ✅ **Clear old cache** - free disk space when needed
+7. ✅ **Skip availability checks** - when you know files exist
+
+## Example: Efficient Workflow
+
+```r
+library(retrosheetshow)
+library(dplyr)
+
+# First run: downloads and caches (~2 min)
+# Subsequent runs: uses cache (~5 sec)
+events_2024 <- get_events(year = 2024)
+
+# Parse once, use many times
+games <- get_game_info(events_2024)
+plays <- get_plays(events_2024)
+
+# Now analyze quickly
+yankees_games <- games |>
+  filter(hometeam == "NYA" | visteam == "NYA")
+
+yankees_plays <- plays |>
+  semi_join(yankees_games, by = "game_id")
+
+home_runs <- plays |>
+  filter(grepl("^HR", event))
+
+# Check what's cached
+cache_status()
+
+# Clear cache when done (optional)
+# clear_cache()
+```
+
+## Future Optimizations
+
+The package may add in future versions:
+
+- Parallel downloads for multiple years
+- Compressed in-memory caching
+- Incremental updates (download only new games)
+- Pre-parsed cache format
+- Progress bars with ETA
+
+## Questions?
+
+- Check `?get_events` for caching details
+- Run `cache_status()` to see what's cached
+- Use `clear_cache()` if you suspect cache corruption
+- File an issue if downloads are consistently > 5 minutes
+

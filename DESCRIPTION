@@ -1,11 +1,35 @@
 Package: retrosheetshow
-Title: What the Package Does (One Line, Title Case)
+Title: Access and Parse Retrosheet Baseball Data
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Travis", "Gerke", , "tgerke@mail.harvard.edu", role = c("aut", "cre"))
+Description: Provides a convenient and tidy interface for accessing Retrosheet 
+    baseball data, including play-by-play event files, box scores, and other 
+    historical baseball data. Functions follow tidyverse principles for easy 
+    integration into data analysis workflows.
+URL: https://tgerke.github.io/retrosheetshow/, https://github.com/tgerke/retrosheetshow
+BugReports: https://github.com/tgerke/retrosheetshow/issues
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+Imports:
+    httr2,
+    readr,
+    dplyr,
+    tibble,
+    tidyr,
+    purrr,
+    stringr,
+    cli,
+    glue,
+    scales,
+    rlang,
+    tools,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Config/testthat/edition: 3

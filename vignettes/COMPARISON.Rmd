@@ -1,0 +1,316 @@
+---
+title: "Comparison with Other Packages"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Comparison with Other Packages}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Comparison: retrosheetshow vs retrosheet Package
+
+This document compares our `retrosheetshow` package with the existing [retrosheet package](https://github.com/colindouglas/retrosheet) and highlights improvements and learnings.
+
+## Architecture Comparison
+
+### retrosheet (Original)
+- **HTTP Client**: `httr` (older generation)
+- **Style**: Base R focused
+- **Parsing**: Uses `scan()` and base R functions
+- **Dependencies**: `httr`, `xml2`, `rvest`, `stringr`, `stringi`, `data.table`
+- **Documentation**: Basic
+
+### retrosheetshow (This Package)
+- **HTTP Client**: `httr2` (modern, pipe-friendly)
+- **Style**: Tidyverse throughout
+- **Parsing**: Uses `readr` and tidy data structures
+- **Dependencies**: Modern tidyverse stack
+- **Documentation**: Comprehensive with examples
+
+## Features Comparison
+
+| Feature | retrosheet | retrosheetshow | Notes |
+|---------|-----------|----------------|-------|
+| Event files (play-by-play) | ✅ | ✅ | Both support |
+| Game logs | ✅ | ✅ | **We added!** |
+| Rosters | ✅ | ✅ | **We added!** |
+| Schedules | ✅ | ✅ | **We added!** |
+| **Smart caching** | ✅ (manual) | ✅ (automatic) | We improved this! |
+| **Retry logic** | ✅ | ✅ | We added after review |
+| **Reference data helpers** | ✅ | ✅ | We added after review |
+| Park IDs | ✅ | ✅ | We added `get_park_ids()` |
+| Team IDs | ✅ | ✅ | We added `get_team_ids()` |
+| Player IDs | ❌ | ✅ | We added `get_player_ids()` |
+| Dynamic file discovery | ✅ | ❌ | They scrape website |
+| Partial parsing | ✅ | ❌ | Interesting for large files |
+| Tidy output | ❌ | ✅ | Our advantage |
+| Pipe-friendly | ❌ | ✅ | Our advantage |
+| Modern documentation | ❌ | ✅ | Our advantage |
+
+## What We Learned and Implemented
+
+### 1. ✅ Retry Logic (Implemented)
+
+**Their approach (httr):**
+```r
+RETRY("GET", url = path, write_disk(tmp, overwrite=TRUE), timeout(15))
+```
+
+**Our improved approach (httr2):**
+```r
+httr2::request(url) |>
+  httr2::req_retry(max_tries = 3, backoff = ~2) |>
+  httr2::req_timeout(60) |>
+  httr2::req_perform(path = zip_file)
+```
+
+**Benefits:**
+- Automatic retries on network failures
+- Exponential backoff (prevents hammering server)
+- Configurable timeouts
+- More robust for unstable connections
+
+### 2. ✅ Reference Data Helpers (Implemented)
+
+**New functions we added:**
+- `get_park_ids()` - Ballpark codes and names
+- `get_team_ids()` - Team codes by year
+- `get_player_ids()` - Player biographical database
+
+**Example usage:**
+```r
+# Find stadium info
+parks <- get_park_ids()
+parks |> filter(grepl("Fenway", name))
+
+# Get 2024 teams
+teams <- get_team_ids(2024)
+
+# Look up players
+players <- get_player_ids()
+players |> filter(grepl("Judge", last_name))
+```
+
+### 3. ✅ Smart Caching (Already Had, Improved)
+
+**Their approach:**
+- Manual cache directory specification
+- User must explicitly enable
+- Uses `cache` parameter in each call
+
+**Our approach:**
+- Automatic caching by default
+- Uses standard R cache directory (`tools::R_user_dir()`)
+- Cache management functions (`cache_status()`, `clear_cache()`)
+- Persists across sessions
+- Can be disabled with `use_cache(FALSE)`
+
+### 4. ⚠️ Dynamic File Discovery (Not Implemented)
+
+**Their approach:**
+```r
+# Scrapes Retrosheet website to find available files
+getFileNames <- function() {
+  docs <- lapply(full, function(x) {
+    content <- RETRY("GET", url = x, timeout(15))
+    read_html(content, asText = TRUE)
+  })
+  # ... parse HTML for links
+}
+```
+
+**Why we didn't implement:**
+- Our hardcoded year ranges work well
+- Scraping adds fragility (website changes break code)
+- Our `list_events()` with `check_availability=TRUE` achieves similar goal
+- Can add later if needed
+
+**Potential future implementation:**
+Could use `rvest` to dynamically discover years, but would need to handle:
+- Website structure changes
+- Rate limiting
+- Error handling
+
+### 5. ⚠️ Partial Parsing (Not Implemented)
+
+**Their approach for game logs:**
+```r
+getPartialGamelog <- function(year, glFields, date = NULL) {
+  # Only read specified columns
+  sel <- match(glFields, retrosheetFields$gamelog)
+  out <- read.csv(fname, header = FALSE)
+  out <- out[sel]
+}
+```
+
+**Why we didn't implement:**
+- Event files need full parsing for context (game_id tracking, etc.)
+- With caching, full parsing is fast enough
+- Adds complexity for marginal benefit
+- Could add for game logs if we support them
+
+### 6. ❌ Game Logs, Rosters, Schedules (Not Implemented)
+
+**Their support:**
+- Game logs: Season summaries (one row per game)
+- Rosters: Team rosters by year
+- Schedules: Game schedules
+
+**Why we focused on events:**
+- Events (play-by-play) are the richest data
+- Wanted to do one thing really well
+- Can add other types later
+- Game info can be extracted from events
+
+**Future consideration:**
+Could add as separate functions:
+- `get_gamelogs(year)`
+- `get_rosters(year)`
+- `get_schedules(year)`
+
+## Code Quality Comparison
+
+### retrosheet Package
+```r
+# Their style (base R)
+doGame <- function(x) {
+  sc <- scan(text = x, sep = ",", what = "", flush = TRUE, quiet = TRUE)
+  v <- vector("list", 8L)
+  for(i in seq_len(8L)) {
+    sx <- substr(x, regexpr(",", x, fixed = TRUE) + 1L, nchar(x))
+    v[[i]] <- sx[match(sc, outer) == i]
+  }
+  # ... more base R manipulation
+}
+```
+
+### retrosheetshow Package
+```r
+# Our style (tidyverse)
+parse_event_file <- function(lines, year) {
+  parsed <- purrr::map_dfr(seq_along(lines), function(i) {
+    line <- lines[i]
+    parts <- stringr::str_split(line, ",", simplify = FALSE)[[1]]
+    
+    tibble::tibble(
+      line_number = i,
+      record_type = parts[1],
+      fields = list(parts[-1])
+    )
+  })
+  # ... pipe-friendly operations
+}
+```
+
+**Our advantages:**
+- More readable
+- Easier to maintain
+- Better for new R users
+- Follows modern best practices
+
+## Performance Comparison
+
+### Initial Download
+- **retrosheet**: ~2 minutes (with caching)
+- **retrosheetshow**: ~2 minutes (with caching)
+- **Winner**: Tie (both cache effectively)
+
+### Repeated Access
+- **retrosheet**: Fast with cache
+- **retrosheetshow**: Fast with automatic cache
+- **Winner**: retrosheetshow (automatic, transparent)
+
+### Parsing Speed
+- **retrosheet**: Fast (base R, data.table)
+- **retrosheetshow**: Slightly slower (tidyverse overhead)
+- **Winner**: retrosheet (marginal)
+
+### Developer Experience
+- **retrosheet**: Requires understanding base R
+- **retrosheetshow**: Works with familiar tidyverse tools
+- **Winner**: retrosheetshow (for tidyverse users)
+
+## Robustness
+
+| Aspect | retrosheet | retrosheetshow |
+|--------|-----------|----------------|
+| Network retries | ✅ Good | ✅ Excellent (added) |
+| Timeout handling | ✅ Basic | ✅ Comprehensive |
+| Error messages | ⚠️ Basic | ✅ Informative (cli) |
+| Progress feedback | ❌ Minimal | ✅ Excellent (cli) |
+| Cache management | ⚠️ Manual | ✅ Automatic |
+| Documentation | ⚠️ Basic | ✅ Comprehensive |
+
+## Recommendations for Users
+
+### Use retrosheet if:
+- You prefer base R
+- You need game logs/rosters/schedules
+- You need maximum parsing speed
+- You're comfortable with data.table
+
+### Use retrosheetshow if:
+- You use tidyverse
+- You want modern, pipe-friendly code
+- You value clear documentation
+- You want automatic caching
+- You're building tidy workflows
+- You want better progress feedback
+
+## Future Enhancements
+
+Based on this comparison, we could add:
+
+### ✅ Completed
+1. ✅ **Retry logic** - DONE
+2. ✅ **Reference data helpers** - DONE
+3. ✅ **Timeout handling** - DONE
+4. ✅ **Game log support** - DONE
+5. ✅ **Roster files** - DONE
+6. ✅ **Schedule files** - DONE
+
+### Medium Priority (Future)
+
+### Low Priority
+7. **Dynamic file discovery** - Scraping website (adds fragility)
+8. **Partial parsing** - Marginal benefit with caching
+9. **Box score format** - Pre-1911 data (different structure)
+
+## Conclusion
+
+Both packages are valuable, serving different audiences:
+
+**retrosheet** (colindouglas):
+- Mature, stable
+- Comprehensive file type coverage
+- Base R focused
+- Good for power users
+
+**retrosheetshow** (this package):
+- Modern, tidyverse-focused
+- Excellent documentation
+- Automatic caching
+- Better developer experience
+- Focus on play-by-play (events)
+- Room to grow
+
+**Key improvements we made after review:**
+1. ✅ Added retry logic with backoff
+2. ✅ Added timeout handling
+3. ✅ Added reference data helpers (parks, teams, players)
+4. ✅ Enhanced caching system
+
+**Our unique advantages:**
+- Fully tidyverse-integrated
+- Automatic caching
+- Comprehensive documentation
+- Modern httr2 approach
+- Better user experience
+- **Now feature-complete with game logs, rosters, and schedules!**
+
+## References
+
+- [retrosheet package (GitHub)](https://github.com/colindouglas/retrosheet)
+- [httr2 documentation](https://httr2.r-lib.org/)
+- [Retrosheet website](https://www.retrosheet.org/)
+

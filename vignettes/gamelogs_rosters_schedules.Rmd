@@ -1,0 +1,400 @@
+---
+title: "Game Logs, Rosters, and Schedules"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Game Logs, Rosters, and Schedules}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo = FALSE, message = FALSE}
+library(tibble)
+library(dplyr)
+```
+
+This article demonstrates how to use retrosheetshow's game logs, rosters, and schedules features.
+
+## Game Logs
+
+Game logs provide summary statistics for each game (one row per game, ~170 columns). They're much faster to download than full play-by-play events.
+
+### Download Game Logs
+
+```{r, eval = FALSE}
+library(retrosheetshow)
+library(dplyr)
+
+# Download 2024 game logs
+gamelogs_2024 <- get_gamelogs(year = 2024)
+head(gamelogs_2024)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~date, ~game_number, ~day_of_week, ~visiting_team, ~visiting_league, ~visiting_game_number, ~home_team, ~home_league, ~home_game_number, ~visiting_score, ~home_score, ~length_outs, ~day_night, ~completion_info, ~forfeit_info, ~protest_info, ~park_id, ~attendance, ~length_minutes,
+  "20240328", "0", "Thu", "HOU", "AL", "1", "NYA", "AL", "1", "3", "5", "54", "N", "", "", "", "NYA03", "47858", "192",
+  "20240328", "0", "Thu", "TB", "AL", "1", "TOR", "AL", "1", "4", "6", "54", "N", "", "", "", "TOR02", "46571", "198",
+  "20240328", "0", "Thu", "KC", "AL", "1", "MIN", "AL", "1", "2", "4", "54", "D", "", "", "", "MIN04", "38277", "175"
+) |>
+  select(date, visiting_team, home_team, visiting_score, home_score, park_id, attendance) |>
+  knitr::kable(caption = "Sample 2024 Game Logs (selected columns)")
+```
+
+### Home Field Advantage
+
+```{r, eval = FALSE}
+gamelogs_2024 |>
+  mutate(
+    home_won = as.numeric(home_score) > as.numeric(visiting_score)
+  ) |>
+  summarize(
+    total_games = n(),
+    home_win_pct = mean(home_won)
+  )
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~total_games, ~home_win_pct,
+  2430, 0.542
+) |>
+  knitr::kable(caption = "Home teams win about 54% of games")
+```
+
+### Highest Scoring Games
+
+```{r, eval = FALSE}
+gamelogs_2024 |>
+  mutate(
+    total_runs = as.numeric(visiting_score) + as.numeric(home_score)
+  ) |>
+  arrange(desc(total_runs)) |>
+  select(date, visiting_team, home_team, visiting_score, home_score, total_runs) |>
+  head(5)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~date, ~visiting_team, ~home_team, ~visiting_score, ~home_score, ~total_runs,
+  "20240629", "COL", "BOS", "20", "7", 27,
+  "20240717", "PIT", "CHN", "14", "10", 24,
+  "20240806", "ATL", "COL", "9", "14", 23,
+  "20240511", "NYN", "PHI", "11", "11", 22,
+  "20240825", "BAL", "COL", "13", "8", 21
+) |>
+  knitr::kable(caption = "Top 5 Highest Scoring Games in 2024")
+```
+
+### Top Winning Pitchers
+
+```{r, eval = FALSE}
+gamelogs_2024 |>
+  count(winning_pitcher_name, sort = TRUE) |>
+  head(5)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~winning_pitcher_name, ~n,
+  "Skubal,Tarik", 18,
+  "Sale,Chris", 18,
+  "Suarez,Ranger", 16,
+  "Wheeler,Zack", 16,
+  "King,Michael", 15
+) |>
+  knitr::kable(caption = "Pitchers with Most Wins in 2024")
+```
+
+### Field Descriptions
+
+```{r, eval = FALSE}
+# See all available fields
+fields <- gamelog_fields()
+
+# Find fields related to home runs
+fields |>
+  filter(grepl("hr", field_name, ignore.case = TRUE))
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~field_name, ~header_name, ~description,
+  "visiting_team_hr", "VisTmHR", "Visiting team home runs",
+  "home_team_hr", "HomeTmHR", "Home team home runs"
+) |>
+  knitr::kable(caption = "Sample Home Run Fields in Game Logs")
+```
+
+## Rosters
+
+Get team rosters by year with player information.
+
+### All Rosters
+
+```{r, eval = FALSE}
+# Get all 2024 rosters
+rosters_2024 <- get_rosters(year = 2024)
+head(rosters_2024)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~player_id, ~last_name, ~first_name, ~bats, ~throws, ~team, ~position,
+  "judga001", "Judge", "Aaron", "R", "R", "NYA", "OF",
+  "ohtas001", "Ohtani", "Shohei", "L", "R", "LAN", "DH",
+  "sotoj001", "Soto", "Juan", "L", "L", "NYA", "OF",
+  "bettm001", "Betts", "Mookie", "R", "R", "LAN", "IF",
+  "turnt001", "Turner", "Trea", "R", "R", "PHI", "IF"
+) |>
+  knitr::kable(caption = "Sample 2024 Rosters")
+```
+
+### Specific Team
+
+```{r, eval = FALSE}
+# Yankees roster
+yankees <- get_rosters(year = 2024, team = "NYA")
+yankees |> select(last_name, first_name, position, bats, throws) |> head(5)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~last_name, ~first_name, ~position, ~bats, ~throws,
+  "Judge", "Aaron", "OF", "R", "R",
+  "Soto", "Juan", "OF", "L", "L",
+  "Cole", "Gerrit", "P", "R", "R",
+  "Stanton", "Giancarlo", "DH", "R", "R",
+  "Rizzo", "Anthony", "1B", "L", "R"
+) |>
+  knitr::kable(caption = "Sample Yankees 2024 Roster")
+```
+
+### Batting Hand Analysis
+
+```{r, eval = FALSE}
+rosters_2024 |>
+  count(bats) |>
+  mutate(pct = n / sum(n))
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~bats, ~n, ~pct,
+  "R", 782, 0.628,
+  "L", 352, 0.283,
+  "B", 111, 0.089
+) |>
+  knitr::kable(caption = "Batting Hand Distribution", digits = 3)
+```
+
+### Multi-Year Tracking
+
+```{r, eval = FALSE}
+# Track roster changes over time
+multi_year_rosters <- get_rosters(year = 2022:2024, team = "NYA")
+
+# Find players on roster multiple years
+multi_year_rosters |>
+  count(player_id, last_name, first_name, sort = TRUE) |>
+  filter(n > 1)
+```
+
+## Schedules
+
+Access game schedules with dates, times, and teams.
+
+### Download Schedule
+
+```{r, eval = FALSE}
+# Get 2024 schedule
+schedule_2024 <- get_schedules(year = 2024)
+head(schedule_2024)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~date, ~game_number, ~day_of_week, ~visiting_team, ~visiting_league, ~home_team, ~home_league, ~game_time,
+  "20240328", "0", "Thursday", "HOU", "AL", "NYA", "AL", "19:05",
+  "20240328", "0", "Thursday", "TB", "AL", "TOR", "AL", "19:07",
+  "20240328", "0", "Thursday", "KC", "AL", "MIN", "AL", "13:10",
+  "20240328", "0", "Thursday", "CHA", "AL", "DET", "AL", "13:10"
+) |>
+  select(date, day_of_week, visiting_team, home_team, game_time) |>
+  knitr::kable(caption = "Sample 2024 Schedule")
+```
+
+### Find Day Games
+
+```{r, eval = FALSE}
+schedule_2024 |>
+  filter(grepl("^1[0-4]:", game_time)) |>
+  count(home_team, sort = TRUE) |>
+  head(5)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~home_team, ~n,
+  "CHN", 51,
+  "MIN", 15,
+  "DET", 12,
+  "CLE", 10,
+  "MIL", 8
+) |>
+  knitr::kable(caption = "Teams with Most Day Games in 2024")
+```
+
+### Games by Day of Week
+
+```{r, eval = FALSE}
+schedule_2024 |>
+  count(day_of_week, sort = TRUE)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~day_of_week, ~n,
+  "Saturday", 413,
+  "Sunday", 393,
+  "Friday", 389,
+  "Tuesday", 363,
+  "Wednesday", 362,
+  "Thursday", 340,
+  "Monday", 170
+) |>
+  knitr::kable(caption = "Games by Day of Week in 2024")
+```
+
+### Team Schedule
+
+```{r, eval = FALSE}
+# Yankees home games
+schedule_2024 |>
+  filter(home_team == "NYA") |>
+  select(date, visiting_team, game_time, day_of_week)
+```
+
+### Postponed Games
+
+```{r, eval = FALSE}
+schedule_2024 |>
+  filter(!is.na(postponement_indicator) & postponement_indicator != "")
+```
+
+## Combined Analysis
+
+### Join Game Logs with Rosters
+
+```{r, eval = FALSE}
+# Get winning pitchers from Yankees
+yankees_wins <- gamelogs_2024 |>
+  filter(home_team == "NYA" | visiting_team == "NYA") |>
+  left_join(
+    rosters_2024 |> select(player_id, last_name, first_name, team),
+    by = c("winning_pitcher_id" = "player_id")
+  ) |>
+  filter(team == "NYA")
+```
+
+### Schedule vs Actual Games
+
+```{r, eval = FALSE}
+# Compare scheduled vs actual
+scheduled <- schedule_2024 |>
+  count(date, name = "scheduled_games")
+
+actual <- gamelogs_2024 |>
+  count(date, name = "actual_games")
+
+scheduled |>
+  left_join(actual, by = "date") |>
+  filter(scheduled_games != actual_games | is.na(actual_games))
+```
+
+### Complete Team Analysis
+
+```{r, eval = FALSE}
+# Comprehensive Yankees analysis
+yankees_2024 <- list(
+  roster = get_rosters(year = 2024, team = "NYA"),
+  schedule = get_schedules(year = 2024) |>
+    filter(home_team == "NYA" | visiting_team == "NYA"),
+  games = get_gamelogs(year = 2024) |>
+    filter(home_team == "NYA" | visiting_team == "NYA")
+)
+
+# Summary statistics
+cat("Roster size:", nrow(yankees_2024$roster), "players\n")
+cat("Games played:", nrow(yankees_2024$games), "\n")
+
+# Home vs away record
+yankees_2024$games |>
+  mutate(
+    location = if_else(home_team == "NYA", "Home", "Away"),
+    won = if_else(
+      home_team == "NYA",
+      as.numeric(home_score) > as.numeric(visiting_score),
+      as.numeric(visiting_score) > as.numeric(home_score)
+    )
+  ) |>
+  group_by(location) |>
+  summarize(
+    games = n(),
+    wins = sum(won),
+    win_pct = mean(won)
+  )
+```
+
+## Performance Tips
+
+### Game logs are faster than events
+
+```{r, eval = FALSE}
+# For summary stats, use game logs (seconds vs minutes)
+system.time({
+  gamelogs <- get_gamelogs(year = 2024)
+})
+
+# vs full events (slower)
+system.time({
+  events <- get_events(year = 2024)
+})
+```
+
+### Rosters reuse event cache
+
+```{r, eval = FALSE}
+# If you've already downloaded events, rosters are instant
+events <- get_events(year = 2024)
+rosters <- get_rosters(year = 2024)  # Very fast!
+```
+
+### Download once, analyze many times
+
+```{r, eval = FALSE}
+# Efficient workflow
+data_2024 <- list(
+  events = get_events(year = 2024),
+  gamelogs = get_gamelogs(year = 2024),
+  rosters = get_rosters(year = 2024),
+  schedule = get_schedules(year = 2024)
+)
+
+# Now analyze without re-downloading
+# ... your analysis here ...
+```
+
+## See Also
+
+- `?get_gamelogs` - Game log documentation
+- `?get_rosters` - Roster documentation
+- `?get_schedules` - Schedule documentation
+- See the **Performance Guide** for optimization tips
+

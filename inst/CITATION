@@ -1,0 +1,21 @@
+citHeader("To cite retrosheetshow in publications use:")
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "retrosheetshow: Access and Parse Retrosheet Baseball Data",
+  author   = "Travis Gerke",
+  year     = "2024",
+  note     = "R package version 0.0.0.9000",
+  url      = "https://github.com/tgerke/retrosheetshow"
+)
+
+citFooter(
+  "\n\n",
+  "IMPORTANT NOTICE:\n",
+  "The information used here was obtained free of charge from and is\n",
+  "copyrighted by Retrosheet. Interested parties may contact Retrosheet\n",
+  "at 20 Sunset Rd., Newark, DE 19711.\n",
+  "\n",
+  "Website: https://www.retrosheet.org"
+)
+

@@ -1,0 +1,118 @@
+url: https://tgerke.github.io/retrosheetshow
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  bslib:
+    primary: "#0054AD"
+    base_font: {google: "Roboto"}
+    heading_font: {google: "Roboto Slab"}
+
+navbar:
+  title: "retrosheetshow"
+  type: default
+  left:
+    - icon: fa-home
+      href: index.html
+      aria-label: Home
+    - text: "Reference"
+      href: reference/index.html
+    - text: "Articles"
+      menu:
+        - text: "Getting Started"
+          href: articles/getting_started.html
+        - text: "Game Logs, Rosters & Schedules"
+          href: articles/gamelogs_rosters_schedules.html
+        - text: "---"
+        - text: "Performance Guide"
+          href: articles/PERFORMANCE.html
+        - text: "Retrosheet Format Reference"
+          href: articles/RETROSHEET_FORMAT.html
+        - text: "Comparison with Other Packages"
+          href: articles/COMPARISON.html
+    - text: "News"
+      href: news/index.html
+  right:
+    - icon: fa-github
+      href: https://github.com/tgerke/retrosheetshow
+      aria-label: GitHub
+    - icon: fa-baseball-ball
+      href: https://www.retrosheet.org
+      aria-label: Retrosheet
+
+home:
+  title: "Access Retrosheet Baseball Data"
+  description: "A tidy interface for downloading and parsing Retrosheet play-by-play events, game logs, rosters, and schedules"
+  
+  sidebar:
+    structure: [links, license, community, citation, authors, dev]
+
+reference:
+  - title: "Play-by-Play Events"
+    desc: >
+      Download and parse detailed play-by-play event data (the core of Retrosheet).
+    contents:
+      - list_events
+      - get_events
+      - get_game_info
+      - get_plays
+      - parse_event_records
+  
+  - title: "Game Logs"
+    desc: >
+      Access summary statistics for each game (one row per game, ~170 columns).
+      Much faster than full play-by-play events.
+    contents:
+      - list_gamelogs
+      - get_gamelogs
+      - gamelog_fields
+  
+  - title: "Rosters and Schedules"
+    desc: >
+      Get team rosters and game schedules by year.
+    contents:
+      - get_rosters
+      - list_schedules
+      - get_schedules
+  
+  - title: "Reference Data"
+    desc: >
+      Download Retrosheet reference data including parks, teams, and player IDs.
+    contents:
+      - get_park_ids
+      - get_team_ids
+      - get_player_ids
+  
+  - title: "Cache Management"
+    desc: >
+      Manage cached downloads for faster repeated access.
+    contents:
+      - cache_dir
+      - cache_status
+      - clear_cache
+      - use_cache
+
+articles:
+  - title: "Getting Started"
+    navbar: ~
+    contents:
+      - getting_started
+      - gamelogs_rosters_schedules
+  
+  - title: "Documentation"
+    navbar: ~
+    contents:
+      - PERFORMANCE
+      - RETROSHEET_FORMAT
+      - COMPARISON
+
+footer:
+  structure:
+    left: [retrosheet, developed_by]
+    right: [built_with]
+  components:
+    retrosheet: |
+      **RETROSHEET DATA NOTICE**: The information used here was obtained free of charge from 
+      and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 
+      20 Sunset Rd., Newark, DE 19711. Website: <https://www.retrosheet.org>
+
