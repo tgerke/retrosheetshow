@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# retrosheetshow
+# retrosheetshow <a href="https://tgerke.github.io/retrosheetshow"><img src="man/figures/logo.jpg" align="right" height="138" alt="retrosheetshow website" /></a>
 
 <!-- badges: start -->
 

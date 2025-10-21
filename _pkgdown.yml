@@ -4,13 +4,41 @@ template:
   bootstrap: 5
   bootswatch: flatly
   bslib:
-    primary: "#0054AD"
+    primary: "#edbd7b"
+    secondary: "#463621"
+    success: "#edbd7b"
+    info: "#edbd7b"
+    warning: "#edbd7b"
+    danger: "#463621"
     base_font: {google: "Roboto"}
     heading_font: {google: "Roboto Slab"}
+  includes:
+    in_header: |
+      <link href="https://fonts.googleapis.com/css2?family=Tourney:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+      <style>
+        .navbar.bg-primary {
+          background-color: #edbd7b !important;
+        }
+        .navbar-brand {
+          color: #463621 !important;
+          font-family: 'Tourney', cursive !important;
+          font-weight: 600 !important;
+          font-size: 1.5rem !important;
+        }
+        .navbar-nav .nav-link {
+          color: #463621 !important;
+        }
+        .navbar-nav .nav-link:hover {
+          color: #463621 !important;
+          opacity: 0.8;
+        }
+      </style>
 
 navbar:
   title: "retrosheetshow"
   type: default
+  logo:
+    image: "man/figures/retrosheetshow-hex.jpg"
   left:
     - icon: fa-home
       href: index.html
@@ -46,6 +74,9 @@ home:
   
   sidebar:
     structure: [links, license, community, citation, authors, dev]
+
+  hero:
+    image: "man/figures/retrosheetshow-hex.jpg"
 
 reference:
   - title: "Play-by-Play Events"
