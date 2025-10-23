@@ -26,8 +26,8 @@ vignettes/*.html
 vignettes/*.pdf
 
 # pkgdown site
-# docs/ - uncomment if using GitHub Actions to build
-# If deploying manually, you'll want to commit docs/
+# Using GitHub Actions to build and deploy, so ignore docs/
+docs/
 
 # IDE files
 .idea/
