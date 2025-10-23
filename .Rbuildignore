@@ -9,3 +9,6 @@
 ^\.git$
 ^\.gitignore$
 ^cran-comments\.md$
+^README_cache$
+^man/figures/.*\.pptx$
+^tests/README\.md$
