@@ -2,6 +2,16 @@
 
 This directory contains the test suite for the retrosheetshow package.
 
+## testthat Edition
+
+This package uses **testthat 3rd edition** (`Config/testthat/edition: 3` in DESCRIPTION). Key features:
+- Improved output comparison with [waldo](https://waldo.r-lib.org/)
+- Messages are no longer silently ignored
+- Warnings must be explicitly handled or suppressed
+- Better reproducible output across systems
+
+See the [testthat 3e documentation](https://testthat.r-lib.org/articles/third-edition.html) for details.
+
 ## Test Structure
 
 The tests are organized into the following files:
