@@ -1,29 +1,32 @@
+---
+output: github_document
+---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
+
 
 # retrosheetshow <a href="https://tgerke.github.io/retrosheetshow"><img src="man/figures/logo.jpg" align="right" height="138" alt="retrosheetshow website" /></a>
 
 <!-- badges: start -->
-
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![R-CMD-check](https://github.com/tgerke/retrosheetshow/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tgerke/retrosheetshow/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/tgerke/retrosheetshow/branch/main/graph/badge.svg)](https://app.codecov.io/gh/tgerke/retrosheetshow?branch=main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 <!-- badges: end -->
 
 > **RETROSHEET DATA NOTICE**
 >
-> The information used here was obtained free of charge from and is
-> copyrighted by Retrosheet. Interested parties may contact Retrosheet
-> at 20 Sunset Rd., Newark, DE 19711.
+> The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
 >
-> Website: <https://www.retrosheet.org>
+> Website: https://www.retrosheet.org
 
-**retrosheetshow** provides a convenient and tidy interface for
-accessing [Retrosheet](https://www.retrosheet.org) baseball data in R.
-The package follows tidyverse principles, making it easy to integrate
-Retrosheet’s play-by-play event files, game logs, rosters, and schedules
-into your data analysis workflows.
+**retrosheetshow** provides a convenient and tidy interface for accessing [Retrosheet](https://www.retrosheet.org) baseball data in R. The package follows tidyverse principles, making it easy to integrate Retrosheet's play-by-play event files, game logs, rosters, and schedules into your data analysis workflows.
 
 ## Installation
 
 You can install the development version of retrosheetshow from GitHub:
+
 
 ``` r
 # install.packages("remotes")
@@ -32,20 +35,18 @@ remotes::install_github("tgerke/retrosheetshow")
 
 ## Overview
 
-Retrosheet is a non-profit organization that has digitized play-by-play
-accounts of baseball games. This package makes it easy to:
+Retrosheet is a non-profit organization that has digitized play-by-play accounts of baseball games. This package makes it easy to:
 
-- **List available event files** by year and type (regular season,
-  all-star, post-season)
+- **List available event files** by year and type (regular season, all-star, post-season)
 - **Download and parse** event files into tidy tibbles
-- **Extract specific information** like game metadata or play-by-play
-  details
+- **Extract specific information** like game metadata or play-by-play details
 
 ## Basic Usage
 
 ### List Available Event Files
 
 Use `list_events()` to see what data is available:
+
 
 ``` r
 library(retrosheetshow)
@@ -64,6 +65,7 @@ list_events(year = 2023, type = c("regular", "post"))
 
 Use `get_events()` to download and parse event files:
 
+
 ``` r
 # Download 2024 regular season
 # First time: ~2 minutes (downloads and caches)
@@ -75,12 +77,12 @@ recent_postseason <- list_events(year = 2020:2024, type = "post") |>
   get_events()
 ```
 
-**Note**: First downloads take 1-2 minutes but are automatically cached.
-Subsequent access is much faster!
+**Note**: First downloads take 1-2 minutes but are automatically cached. Subsequent access is much faster!
 
 ### Extract Specific Information
 
 Use helper functions to extract game info or play-by-play data:
+
 
 ``` r
 # Get game-level metadata
@@ -97,6 +99,7 @@ parsed <- parse_event_records(events_2024, record_types = c("play", "sub"))
 
 Access summary data and team rosters:
 
+
 ``` r
 # Game logs (one row per game with summary stats)
 gamelogs_2024 <- get_gamelogs(year = 2024)
@@ -112,6 +115,7 @@ schedule_2024 <- get_schedules(year = 2024)
 ### Reference Data Helpers
 
 Get Retrosheet reference data for parks, teams, and players:
+
 
 ``` r
 library(dplyr)
@@ -131,7 +135,8 @@ parks |> filter(grepl("Fenway", name))
 
 ## Workflow Example
 
-Here’s a complete workflow to analyze recent World Series games:
+Here's a complete workflow to analyze recent World Series games:
+
 
 ``` r
 library(retrosheetshow)
@@ -161,6 +166,7 @@ Here are some examples with real Retrosheet data:
 
 Game logs provide fast access to summary statistics (one row per game):
 
+
 ``` r
 library(retrosheetshow)
 library(dplyr)
@@ -176,17 +182,22 @@ gamelogs |>
   knitr::kable()
 ```
 
-| date | visiting_team | home_team | visiting_score | home_score | winning_pitcher_name | attendance |
-|:---|:---|:---|:---|:---|:---|:---|
-| 20230330 | SFN | NYA | 0 | 5 | Cole,Gerrit | 47282 |
-| 20230330 | CHN | MIL | 4 | 0 | Hendricks,Kyle | 44253 |
-| 20230330 | SDN | COL | 2 | 1 | Snell,Blake | 30427 |
-| 20230330 | TOR | SLN | 10 | 9 | Berrios,Jose | 44190 |
-| 20230331 | MIN | KCA | 1 | 4 | Greinke,Zack | 27021 |
 
-Sample of 2023 Game Logs
+
+Table: Sample of 2023 Game Logs
+
+|date     |visiting_team |home_team |visiting_score |home_score |winning_pitcher_name |attendance |
+|:--------|:-------------|:---------|:--------------|:----------|:--------------------|:----------|
+|20230330 |SFN           |NYA       |0              |5          |Cole,Gerrit          |47282      |
+|20230330 |CHN           |MIL       |4              |0          |Hendricks,Kyle       |44253      |
+|20230330 |SDN           |COL       |2              |1          |Snell,Blake          |30427      |
+|20230330 |TOR           |SLN       |10             |9          |Berrios,Jose         |44190      |
+|20230331 |MIN           |KCA       |1              |4          |Greinke,Zack         |27021      |
+
+
 
 ### Home Field Advantage Analysis
+
 
 ``` r
 # Calculate home field advantage
@@ -204,15 +215,20 @@ gamelogs |>
   knitr::kable(caption = "2023 Home Field Advantage")
 ```
 
-| total_games | home_wins | home_win_pct |
-|------------:|----------:|:-------------|
-|        2430 |      1318 | 54.2%        |
 
-2023 Home Field Advantage
+
+Table: 2023 Home Field Advantage
+
+| total_games| home_wins|home_win_pct |
+|-----------:|---------:|:------------|
+|        2430|      1318|54.2%        |
+
+
 
 ### Team Rosters
 
 Get and display team rosters:
+
 
 ``` r
 # Get Yankees 2023 roster
@@ -225,22 +241,27 @@ yankees |>
   knitr::kable()
 ```
 
-| last_name | first_name | bats | throws | position |
-|:----------|:-----------|:-----|:-------|:---------|
-| Bader     | Harrison   | R    | R      | 8        |
-| Bauers    | Jake       | L    | L      | 3        |
-| Cabrera   | Oswaldo    | S    | R      | 5        |
-| Cole      | Gerrit     | R    | R      | 1        |
-| Donaldson | Josh       | R    | R      | 5        |
-| German    | Domingo    | R    | R      | 1        |
-| Holmes    | Clay       | R    | R      | 1        |
-| Judge     | Aaron      | R    | R      | 9        |
-| LeMahieu  | DJ         | R    | R      | 4        |
-| Rizzo     | Anthony    | L    | L      | 3        |
 
-Sample of Yankees 2023 Roster
+
+Table: Sample of Yankees 2023 Roster
+
+|last_name |first_name |bats |throws |position |
+|:---------|:----------|:----|:------|:--------|
+|Bader     |Harrison   |R    |R      |8        |
+|Bauers    |Jake       |L    |L      |3        |
+|Cabrera   |Oswaldo    |S    |R      |5        |
+|Cole      |Gerrit     |R    |R      |1        |
+|Donaldson |Josh       |R    |R      |5        |
+|German    |Domingo    |R    |R      |1        |
+|Holmes    |Clay       |R    |R      |1        |
+|Judge     |Aaron      |R    |R      |9        |
+|LeMahieu  |DJ         |R    |R      |4        |
+|Rizzo     |Anthony    |L    |L      |3        |
+
+
 
 ### Top Winning Pitchers
+
 
 ``` r
 # Most wins in 2023
@@ -250,20 +271,24 @@ gamelogs |>
   knitr::kable(col.names = c("Pitcher", "Wins"))
 ```
 
-| pitcher         | wins |
-|:----------------|-----:|
-| Webb,Logan      |   15 |
-| Gallen,Zac      |   14 |
-| López,Pablo     |   14 |
-| Strider,Spencer |   14 |
-| Clase,Emmanuel  |   13 |
-| Jansen,Kenley   |   13 |
-| Lynn,Lance      |   13 |
-| Fried,Max       |   12 |
-| Gausman,Kevin   |   12 |
-| Nola,Aaron      |   12 |
 
-Top 10 Winning Pitchers in 2023
+
+Table: Top 10 Winning Pitchers in 2023
+
+|pitcher         | wins|
+|:---------------|----:|
+|Webb,Logan      |   15|
+|Gallen,Zac      |   14|
+|López,Pablo     |   14|
+|Strider,Spencer |   14|
+|Clase,Emmanuel  |   13|
+|Jansen,Kenley   |   13|
+|Lynn,Lance      |   13|
+|Fried,Max       |   12|
+|Gausman,Kevin   |   12|
+|Nola,Aaron      |   12|
+
+
 
 ## Data Types
 
@@ -271,8 +296,7 @@ Top 10 Winning Pitchers in 2023
 
 ### Play-by-Play Events
 
-Detailed play-by-play data (the core of Retrosheet). Event files contain
-several types of records:
+Detailed play-by-play data (the core of Retrosheet). Event files contain several types of records:
 
 - **`id`**: Game identifier
 - **`version`**: File format version
@@ -283,57 +307,52 @@ several types of records:
 - **`com`**: Comments
 - **`data`**: Additional data (earned runs, etc.)
 
-The package parses these into a tidy format while preserving the
-original structure.
+The package parses these into a tidy format while preserving the original structure.
 
 ### Game Logs
 
-Summary statistics for each game (one row per game). Much smaller and
-faster than events: - Team statistics (runs, hits, errors, etc.) -
-Pitcher decisions (W/L/S) - Starting lineups - Umpires and managers -
-~170 fields per game
+Summary statistics for each game (one row per game). Much smaller and faster than events:
+- Team statistics (runs, hits, errors, etc.)
+- Pitcher decisions (W/L/S)
+- Starting lineups
+- Umpires and managers
+- ~170 fields per game
 
 ### Rosters
 
-Team rosters by year: - Player names and IDs - Batting/throwing hands -
-Primary positions
+Team rosters by year:
+- Player names and IDs
+- Batting/throwing hands
+- Primary positions
 
 ### Schedules
 
-Game schedules showing: - Planned game dates and times - Home and
-visiting teams - Postponement information
+Game schedules showing:
+- Planned game dates and times
+- Home and visiting teams
+- Postponement information
 
 ## Retrosheet Attribution
 
-**This package uses Retrosheet data.** Per Retrosheet’s requirements,
-this notice must appear prominently:
+**This package uses Retrosheet data.** Per Retrosheet's requirements, this notice must appear prominently:
 
-> The information used here was obtained free of charge from and is
-> copyrighted by Retrosheet. Interested parties may contact Retrosheet
-> at 20 Sunset Rd., Newark, DE 19711.
+> The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
 
-Retrosheet is an all-volunteer 501(c)(3) charitable organization. To
-support their incredible work: - **Volunteer**: Visit
-[retrosheet.org](https://www.retrosheet.org) - **Donate**:
-[retrosheet.org/donate](https://www.retrosheet.org/donate/index.html)
+Retrosheet is an all-volunteer 501(c)(3) charitable organization. To support their incredible work:
+- **Volunteer**: Visit [retrosheet.org](https://www.retrosheet.org)
+- **Donate**: [retrosheet.org/donate](https://www.retrosheet.org/donate/index.html)
 
-The retrosheetshow package is not affiliated with Retrosheet but is
-grateful for their work in preserving baseball history.
+The retrosheetshow package is not affiliated with Retrosheet but is grateful for their work in preserving baseball history.
 
 ## Features
 
-- **Smart caching**: Downloaded files are cached locally - first
-  download takes 1-2 min, subsequent access is ~5 sec
-- **Tidy design**: Returns tibbles and works seamlessly with dplyr,
-  tidyr, and other tidyverse packages
+- **Smart caching**: Downloaded files are cached locally - first download takes 1-2 min, subsequent access is ~5 sec
+- **Tidy design**: Returns tibbles and works seamlessly with dplyr, tidyr, and other tidyverse packages
 - **Pipe-friendly**: Functions designed for use with `|>` or `%>%`
 - **Progress feedback**: Uses cli for informative progress messages
-- **Cache management**: `cache_status()`, `clear_cache()`, and
-  `use_cache()` for full control
-- **Flexible**: Download specific years/types or explore all available
-  data
-- **Type-safe parsing**: Converts fields to appropriate types (integers,
-  characters, etc.)
+- **Cache management**: `cache_status()`, `clear_cache()`, and `use_cache()` for full control
+- **Flexible**: Download specific years/types or explore all available data
+- **Type-safe parsing**: Converts fields to appropriate types (integers, characters, etc.)
 
 ## Data Coverage
 
@@ -344,13 +363,12 @@ Retrosheet has digitized data spanning over a century:
 - **Post-season**: 1903-2024 (with some gaps)
 - **Negro Leagues**: Various years available
 
-See the [Retrosheet website](https://www.retrosheet.org/game.htm) for
-complete details on data availability.
+See the [Retrosheet website](https://www.retrosheet.org/game.htm) for complete details on data availability.
 
 ## Performance
 
-First downloads take 1-2 minutes, but files are automatically cached for
-fast repeated access:
+First downloads take 1-2 minutes, but files are automatically cached for fast repeated access:
+
 
 ``` r
 # View cached files
@@ -360,8 +378,7 @@ cache_status()
 clear_cache()
 ```
 
-See [PERFORMANCE.md](inst/PERFORMANCE.md) for detailed performance tips
-and benchmarks.
+See [PERFORMANCE.md](inst/PERFORMANCE.md) for detailed performance tips and benchmarks.
 
 ## Related Resources
 
@@ -376,6 +393,5 @@ MIT + file LICENSE
 
 ## Code of Conduct
 
-Please note that retrosheetshow is released with a [Contributor Code of
-Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html).
-By contributing to this project, you agree to abide by its terms.
+Please note that retrosheetshow is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.
+
