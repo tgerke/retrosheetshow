@@ -92,6 +92,20 @@ home:
   
   sidebar:
     structure: [links, license, community, citation, authors, dev]
+  
+  badges:
+    - text: "Lifecycle: experimental"
+      href: "https://lifecycle.r-lib.org/articles/stages.html#experimental"
+      src: "https://img.shields.io/badge/lifecycle-experimental-orange.svg"
+    - text: "R-CMD-check"
+      href: "https://github.com/tgerke/retrosheetshow/actions/workflows/R-CMD-check.yaml"
+      src: "https://github.com/tgerke/retrosheetshow/actions/workflows/R-CMD-check.yaml/badge.svg"
+    - text: "Codecov test coverage"
+      href: "https://app.codecov.io/gh/tgerke/retrosheetshow?branch=main"
+      src: "https://codecov.io/gh/tgerke/retrosheetshow/branch/main/graph/badge.svg"
+    - text: "License: MIT"
+      href: "https://opensource.org/licenses/MIT"
+      src: "https://img.shields.io/badge/License-MIT-blue.svg"
 
   hero:
     image: "man/figures/retrosheetshow-hex.jpg"
