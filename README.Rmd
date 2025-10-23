@@ -384,10 +384,25 @@ See [PERFORMANCE.md](inst/PERFORMANCE.md) for detailed performance tips and benc
 
 ## Related Resources
 
+### Retrosheet Documentation
+
 - [Retrosheet home](https://www.retrosheet.org)
 - [Event file documentation](https://www.retrosheet.org/eventfile.htm)
 - [BEVENT/BGAME tools](https://www.retrosheet.org/datause.html)
 - [Performance guide](inst/PERFORMANCE.md)
+
+### Related Baseball Data Packages
+
+**R Packages:**
+
+- [**Lahman**](https://cdalzell.github.io/Lahman/) - R package for Sean Lahman's Baseball Database with historical player and team statistics
+- [**baseballr**](https://billpetti.github.io/baseballr/) - Functions for scraping and analyzing baseball data from FanGraphs, Baseball Reference, and Statcast
+- [**mlbgameday**](https://github.com/keberwein/mlbgameday) - R package for accessing MLB GameDay data
+
+**Python Packages:**
+
+- [**pybaseball**](https://github.com/jldbc/pybaseball) - Python package for baseball data analysis with Statcast, FanGraphs, and Baseball Reference scrapers
+- [**collegebaseball**](https://github.com/nathanblumenfeld/collegebaseball) - Python tools for college baseball data
 
 ## License
 
