@@ -1,0 +1,5 @@
+PARKID,NAME,AKA,CITY,STATE,START,END,LEAGUE,NOTES
+ALB01,Riverside Park,,Albany,NY,09/11/1880,05/30/1882,NL,"TRN:9/11/80;6/15&9/10/1881;5/16-5/18&5/30/1882"
+ALT01,Columbia Park,,Altoona,PA,04/30/1884,05/31/1884,UA,""
+ANA01,Angel Stadium of Anaheim,Edison Field; Anaheim Stadium,Anaheim,CA,04/19/1966,,AL,""
+ARL01,Arlington Stadium,,Arlington,TX,04/21/1972,10/03/1993,AL,""

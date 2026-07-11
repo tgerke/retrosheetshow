@@ -1,0 +1,106 @@
+id,NYA202410140
+version,2
+info,visteam,CLE
+info,hometeam,NYA
+info,site,NYC21
+info,date,2024/10/14
+info,number,0
+info,gametype,lcs
+info,starttime,7:38PM
+info,daynight,night
+info,innings,9
+info,tiebreaker,
+info,usedh,true
+info,umphome,estam901
+info,ump1b,iassd901
+info,ump2b,segac901
+info,ump3b,porta901
+info,umplf,viscj901
+info,umprf,carav901
+info,inputtime,2024/10/18 09:00:52
+info,howscored,unknown
+info,pitches,pitches
+info,oscorer,karph701
+info,temp,50
+info,winddir,ltor
+info,windspeed,15
+info,fieldcond,unknown
+info,precip,none
+info,sky,cloudy
+info,timeofgame,181
+info,attendance,47264
+info,wp,rodoc001
+info,lp,cobba001
+info,save,weavl001
+start,kwans001,"Steven Kwan",0,1,7
+start,fry-d001,"David Fry",0,2,10
+start,ramij003,"Jose Ramirez",0,3,5
+start,thoml002,"Lane Thomas",0,4,8
+start,naylj001,"Josh Naylor",0,5,3
+start,noelj001,"Jhonkensy Noel",0,6,9
+start,naylb001,"Bo Naylor",0,7,2
+start,gimea001,"Andres Gimenez",0,8,4
+start,roccb001,"Brayan Rocchio",0,9,6
+start,cobba001,"Alex Cobb",0,0,1
+start,torrg001,"Gleyber Torres",1,1,4
+start,sotoj001,"Juan Soto",1,2,9
+start,judga001,"Aaron Judge",1,3,8
+start,wella002,"Austin Wells",1,4,2
+start,stanm004,"Giancarlo Stanton",1,5,10
+start,chisj001,"Jazz Chisholm Jr.",1,6,5
+start,volpa001,"Anthony Volpe",1,7,6
+start,rizza001,"Anthony Rizzo",1,8,3
+start,verda001,"Alex Verdugo",1,9,7
+start,rodoc001,"Carlos Rodon",1,0,1
+play,1,0,kwans001,32,BFFFBFFBX,7/F7S
+com,"$Yankees challenged (tag play), call on the field was upheld."
+data,er,cobba001,3
+data,er,walta001,0
+id,NYA202410150
+version,2
+info,visteam,CLE
+info,hometeam,NYA
+info,site,NYC21
+info,date,2024/10/15
+info,number,0
+info,gametype,lcs
+info,starttime,7:38PM
+info,daynight,night
+info,innings,9
+info,tiebreaker,
+info,usedh,true
+info,umphome,morag901
+info,ump1b,segac901
+info,ump2b,porta901
+info,ump3b,viscj901
+info,umplf,carav901
+info,umprf,estam901
+info,inputtime,2024/10/17 09:00:20
+info,howscored,unknown
+info,pitches,pitches
+info,oscorer,kaplh701
+info,temp,52
+info,winddir,ltor
+info,windspeed,2
+info,fieldcond,unknown
+info,precip,none
+info,sky,cloudy
+info,timeofgame,206
+info,attendance,47054
+info,wp,holmc001
+info,lp,bibet001
+info,save,
+start,kwans001,"Steven Kwan",0,1,7
+start,manzk001,"Kyle Manzardo",0,2,10
+start,ramij003,"Jose Ramirez",0,3,5
+start,naylj001,"Josh Naylor",0,4,3
+start,thoml002,"Lane Thomas",0,5,8
+start,brenw002,"Will Brennan",0,6,9
+start,gimea001,"Andres Gimenez",0,7,4
+start,naylb001,"Bo Naylor",0,8,2
+start,roccb001,"Brayan Rocchio",0,9,6
+start,bibet001,"Tanner Bibee",0,0,1
+start,torrg001,"Gleyber Torres",1,1,4
+start,sotoj001,"Juan Soto",1,2,9
+play,8,1,torrg001,12,SFBC,K
+play,9,0,manzk001,00,,NP
