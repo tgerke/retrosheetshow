@@ -25,7 +25,9 @@ library(dplyr)
 
 ## Introduction
 
-**retrosheetshow** provides a convenient and tidy interface for accessing [Retrosheet](https://www.retrosheet.org) baseball data in R. This vignette will get you started with the basic functionality.
+**retrosheetshow** provides a convenient and tidy interface for accessing [Retrosheet](https://www.retrosheet.org) baseball data in R. This vignette gets you started with the basic functionality.
+
+Because every function downloads data from Retrosheet, the code chunks in this vignette are not evaluated when the package is built. The tables shown are real outputs captured from the 2024 season.
 
 ```{r setup, eval = FALSE}
 library(retrosheetshow)
@@ -46,211 +48,218 @@ list_events(year = 2020:2024)
 ```{r, echo = FALSE}
 tribble(
   ~year, ~type, ~url,
-  2020, "regular", "https://www.retrosheet.org/events/2020eve.zip",
-  2021, "regular", "https://www.retrosheet.org/events/2021eve.zip",
-  2022, "regular", "https://www.retrosheet.org/events/2022eve.zip",
+  2024, "regular", "https://www.retrosheet.org/events/2024eve.zip",
   2023, "regular", "https://www.retrosheet.org/events/2023eve.zip",
-  2024, "regular", "https://www.retrosheet.org/events/2024eve.zip"
+  2022, "regular", "https://www.retrosheet.org/events/2022eve.zip",
+  2021, "regular", "https://www.retrosheet.org/events/2021eve.zip",
+  2020, "regular", "https://www.retrosheet.org/events/2020eve.zip"
 ) |>
   knitr::kable()
 ```
 
 ### Download Play-by-Play Events
 
+`get_events()` downloads an event archive, extracts it, and parses every record. Downloads are cached, so only the first call for a given year touches the network. The postseason archives are small and make a quick first example:
+
 ```{r, eval = FALSE}
-# Download 2024 regular season
-# First time: ~2 minutes (downloads and caches)
-# Subsequent times: ~5 seconds (uses cache)
-events_2024 <- get_events(year = 2024)
+events <- get_events(year = 2024, type = "post")
 ```
 
-**Note**: Files are automatically cached for fast repeated access!
+The result has one row per record in the event files, with the raw fields in `f1`-`f6`. You'll usually hand it to one of the extractor functions below rather than work with it directly.
 
 ### Extract Game Information
 
+`get_game_info()` returns one row per game with all its metadata:
+
 ```{r, eval = FALSE}
-# Get game-level metadata
-games <- get_game_info(events_2024)
-head(games)
+games <- get_game_info(events)
+games |>
+  select(game_id, date, visteam, hometeam, site, attendance)
 ```
 
 ```{r, echo = FALSE}
 tribble(
-  ~game_id, ~date, ~visiting_team, ~home_team, ~site,
-  "NYA202403280", "2024/03/28", "HOU", "NYA", "NYA03",
-  "TOR202403280", "2024/03/28", "TB", "TOR", "TOR02",
-  "MIN202403280", "2024/03/28", "KC", "MIN", "MIN04",
-  "DET202403280", "2024/03/28", "CHA", "DET", "DET08"
+  ~game_id, ~date, ~visteam, ~hometeam, ~site, ~attendance,
+  "NYA202410140", "2024/10/14", "CLE", "NYA", "NYC21", "47264",
+  "NYA202410150", "2024/10/15", "CLE", "NYA", "NYC21", "47054",
+  "CLE202410170", "2024/10/17", "NYA", "CLE", "CLE08", "32531",
+  "CLE202410180", "2024/10/18", "NYA", "CLE", "CLE08", "35263"
 ) |>
-  knitr::kable(caption = "Sample Game Information")
+  knitr::kable(caption = "Game information (2024 ALCS, first 4 games)")
 ```
 
+`get_plays()` returns one row per play, with the inning, batting team (0 = visiting, 1 = home), batter, count, pitch sequence, and the Retrosheet event string:
+
 ```{r, eval = FALSE}
-# Get play-by-play data
-plays <- get_plays(events_2024)
-head(plays)
+plays <- get_plays(events)
+plays |>
+  select(game_id, inning, team, player_id, count, pitches, event)
 ```
 
 ```{r, echo = FALSE}
 tribble(
-  ~game_id, ~inning, ~batting_team, ~batter_id, ~count, ~event,
-  "NYA202403280", 1, "HOU", "altuj001", "22", "K",
-  "NYA202403280", 1, "HOU", "bregm001", "00", "8/F",
-  "NYA202403280", 1, "HOU", "alvay001", "12", "S7",
-  "NYA202403280", 1, "HOU", "tucke001", "11", "D9"
+  ~game_id, ~inning, ~team, ~player_id, ~count, ~pitches, ~event,
+  "NYA202410140", 1L, 0L, "kwans001", "32", "BFFFBFFBX", "7/F7S",
+  "NYA202410140", 1L, 0L, "fry-d001", "20", "BBX", "S7/G56",
+  "NYA202410140", 1L, 0L, "ramij003", "21", "BBSX", "9/F89",
+  "NYA202410140", 1L, 0L, "thoml002", "22", "BCSBB", "PB.1-2"
 ) |>
-  knitr::kable(caption = "Sample Play-by-Play Data")
+  knitr::kable(caption = "Play-by-play records (2024 ALCS game 1)")
 ```
+
+The event strings (`7/F7S`, `S7/G56`, ...) are Retrosheet's play notation; see the **Retrosheet Format Reference** article for how to read them.
 
 ## Game Logs (Faster Alternative)
 
-For summary statistics without full play-by-play detail:
+Game logs contain one row per game with 161 summary fields, and are much smaller than the play-by-play archives. Scores and counting statistics are parsed as integers:
 
 ```{r, eval = FALSE}
-# Download game logs (much faster than events)
-gamelogs_2024 <- get_gamelogs(year = 2024)
-head(gamelogs_2024)
+gamelogs <- get_gamelogs(year = 2024)
+gamelogs |>
+  select(date, visiting_team, home_team, visiting_score, home_score,
+         winning_pitcher_name, attendance)
 ```
 
 ```{r, echo = FALSE}
 tribble(
   ~date, ~visiting_team, ~home_team, ~visiting_score, ~home_score, ~winning_pitcher_name, ~attendance,
-  "20240328", "HOU", "NYA", "3", "5", "Cole,Gerrit", "47858",
-  "20240328", "TB", "TOR", "4", "6", "Berrios,Jose", "46571",
-  "20240328", "KC", "MIN", "2", "4", "Ryan,Joe", "38277",
-  "20240328", "CHA", "DET", "1", "3", "Skubal,Tarik", "42028"
+  "20240320", "LAN", "SDN", 5L, 2L, "Daniel Hudson", 15952L,
+  "20240321", "SDN", "LAN", 15L, 11L, "Michael King", 15952L,
+  "20240328", "COL", "ARI", 1L, 16L, "Zac Gallen", 48559L,
+  "20240328", "WAS", "CIN", 2L, 8L, "Frankie Montas", 43799L
 ) |>
-  knitr::kable(caption = "Sample 2024 Game Logs")
+  knitr::kable(caption = "2024 game logs (first 4 games)")
 ```
 
 ```{r, eval = FALSE}
-# Calculate home field advantage
-gamelogs_2024 |>
-  mutate(
-    home_won = as.numeric(home_score) > as.numeric(visiting_score)
-  ) |>
+# Home field advantage in 2024
+gamelogs |>
   summarize(
-    home_win_pct = mean(home_won)
+    total_games = n(),
+    home_wins = sum(home_score > visiting_score),
+    home_win_pct = mean(home_score > visiting_score)
   )
 ```
 
 ```{r, echo = FALSE}
-tibble(home_win_pct = 0.538) |>
-  knitr::kable(caption = "Home Field Advantage in 2024")
+tibble(total_games = 2429L, home_wins = 1267L, home_win_pct = 0.522) |>
+  knitr::kable(caption = "Home field advantage in 2024")
 ```
 
 ## Team Rosters
 
 ```{r, eval = FALSE}
-# Get all 2024 rosters
-rosters <- get_rosters(year = 2024)
-head(rosters)
+yankees <- get_rosters(year = 2024, team = "NYA")
+yankees |>
+  arrange(last_name)
 ```
 
 ```{r, echo = FALSE}
 tribble(
   ~player_id, ~last_name, ~first_name, ~bats, ~throws, ~team, ~position,
-  "judga001", "Judge", "Aaron", "R", "R", "NYA", "OF",
-  "sotoj001", "Soto", "Juan", "L", "L", "NYA", "OF",
-  "coleg001", "Cole", "Gerrit", "R", "R", "NYA", "P",
-  "stant001", "Stanton", "Giancarlo", "R", "R", "NYA", "DH"
+  "andrc002", "Andrews", "Clayton", "L", "L", "NYA", "P",
+  "beetc001", "Beeter", "Clayton", "R", "R", "NYA", "P",
+  "bertj001", "Berti", "Jon", "R", "R", "NYA", "3B",
+  "bickp001", "Bickford", "Phil", "R", "R", "NYA", "P"
 ) |>
-  knitr::kable(caption = "Sample Yankees Roster for 2024")
+  knitr::kable(caption = "2024 Yankees roster (first 4 players)")
 ```
 
 ## Game Schedules
 
 ```{r, eval = FALSE}
-# Get 2024 schedule
 schedule <- get_schedules(year = 2024)
-head(schedule)
+schedule |>
+  select(date, game_number, day_of_week, visiting_team, home_team,
+         day_night, postponed)
 ```
 
 ```{r, echo = FALSE}
 tribble(
-  ~date, ~game_number, ~day_of_week, ~visiting_team, ~home_team, ~game_time,
-  "20240328", "0", "Thursday", "HOU", "NYA", "19:05",
-  "20240328", "0", "Thursday", "TB", "TOR", "19:07",
-  "20240328", "0", "Thursday", "KC", "MIN", "13:10",
-  "20240328", "0", "Thursday", "CHA", "DET", "13:10"
+  ~date, ~game_number, ~day_of_week, ~visiting_team, ~home_team, ~day_night, ~postponed,
+  "20240320", 0L, "Wednesday", "LAN", "SDN", "n", NA,
+  "20240321", 0L, "Thursday", "SDN", "LAN", "n", NA,
+  "20240328", 0L, "Thursday", "MIL", "NYN", "d", "Rain",
+  "20240328", 0L, "Thursday", "ANA", "BAL", "d", NA
 ) |>
-  knitr::kable(caption = "Sample 2024 Schedule")
+  knitr::kable(caption = "2024 schedule (first 4 rows)")
 ```
 
 ## Reference Data
 
 ```{r, eval = FALSE}
-# Get ballpark codes
+# Ballpark codes
 parks <- get_park_ids()
-head(parks)
+
+# Team codes for a year
+teams <- get_team_ids(2024)
+
+# Player biographical database
+players <- get_player_ids()
 ```
 
 ```{r, echo = FALSE}
 tribble(
-  ~park_id, ~name, ~aka, ~city, ~state, ~start, ~end,
-  "ATL04", "Truist Park", "SunTrust Park", "Atlanta", "GA", "04/14/2017", "",
-  "BAL13", "Oriole Park at Camden Yards", "", "Baltimore", "MD", "04/06/1992", "",
-  "BOS07", "Fenway Park", "", "Boston", "MA", "04/20/1912", "",
-  "NYA03", "Yankee Stadium", "", "Bronx", "NY", "04/16/2009", ""
+  ~park_id, ~name, ~city, ~state, ~start, ~league,
+  "ATL03", "Suntrust Park", "Atlanta", "GA", "04/14/2017", "NL",
+  "BOS07", "Fenway Park", "Boston", "MA", "04/20/1912", "AL",
+  "CHI11", "Wrigley Field", "Chicago", "IL", "04/23/1914", "NL",
+  "NYC21", "Yankee Stadium II", "New York", "NY", "04/16/2009", "AL"
 ) |>
-  knitr::kable(caption = "Sample Ballpark Reference Data")
+  knitr::kable(caption = "Ballpark reference data (selected parks)")
 ```
 
-## Cache Management
+## Caching
+
+Downloads are cached under `tools::R_user_dir("retrosheetshow", "cache")`, so repeated calls for the same year read from disk instead of the network:
 
 ```{r, eval = FALSE}
 # View cached files
 cache_status()
 
-# Clear cache to free space
+# Remove cached files (by year/type, or everything)
+clear_cache(year = 2024, type = "regular")
 clear_cache()
 
-# Disable caching temporarily
+# Disable caching for this session
 use_cache(FALSE)
 ```
 
-## Next Steps
-
-- See the **Game Logs, Rosters & Schedules** article for more examples
-- Read the **Performance Guide** for optimization tips
-- Check the **Retrosheet Format Reference** to understand the data structure
-- Browse the **Reference** documentation for all available functions
+Regular-season event archives are the largest downloads (a few MB compressed per season); game logs and schedules are much smaller. If a download is interrupted, nothing is written to the cache, so simply retry.
 
 ## Complete Example
+
+The 2024 Yankees, from game logs alone:
 
 ```{r, eval = FALSE}
 library(retrosheetshow)
 library(dplyr)
 
-# Get 2024 data
 gamelogs <- get_gamelogs(year = 2024)
-rosters <- get_rosters(year = 2024)
 
-# Analyze Yankees
-yankees_games <- gamelogs |>
+gamelogs |>
   filter(home_team == "NYA" | visiting_team == "NYA") |>
   mutate(
-    yankees_score = if_else(home_team == "NYA", 
-                            as.numeric(home_score), 
-                            as.numeric(visiting_score)),
-    opponent_score = if_else(home_team == "NYA",
-                             as.numeric(visiting_score),
-                             as.numeric(home_score)),
+    yankees_score = if_else(home_team == "NYA", home_score, visiting_score),
+    opponent_score = if_else(home_team == "NYA", visiting_score, home_score),
     won = yankees_score > opponent_score
-  )
-
-# Win percentage
-yankees_games |>
-  summarize(
-    games = n(),
-    wins = sum(won),
-    win_pct = mean(won)
-  )
+  ) |>
+  summarize(games = n(), wins = sum(won), win_pct = mean(won))
 ```
+
+```{r, echo = FALSE}
+tibble(games = 162L, wins = 94L, win_pct = 0.58) |>
+  knitr::kable(caption = "2024 Yankees record")
+```
+
+## Next Steps
+
+- See the **Game Logs, Rosters & Schedules** article for more examples
+- Check the **Retrosheet Format Reference** to understand the event data structure
+- Browse the **Reference** documentation for all available functions
 
 ## Attribution
 
 Remember to cite Retrosheet when using this data:
 
 > The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
-

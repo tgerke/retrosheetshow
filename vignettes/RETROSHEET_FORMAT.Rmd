@@ -44,6 +44,7 @@ Examples:
 - `info,hometeam,NYA` - Home team code
 - `info,date,2023/04/07` - Game date
 - `info,number,0` - Game number
+- `info,gametype,regular` - Game type (regular, lcs, worldseries, ...)
 - `info,site,NYA03` - Ballpark code
 - `info,starttime,7:05PM` - Start time
 - `info,daynight,night` - Day or night game

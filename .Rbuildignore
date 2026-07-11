@@ -9,3 +9,6 @@
 ^\.git$
 ^\.gitignore$
 ^cran-comments\.md$
+^cache$
+^\.Rhistory$
+^README_cache$
