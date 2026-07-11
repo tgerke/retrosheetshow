@@ -5,16 +5,14 @@
 #' detail.
 #'
 #' @param year Numeric vector of years to check. If NULL (default), checks all
-#'   available years (1871-2024).
+#'   available years (1871 onward).
 #' @param check_availability Logical. If TRUE (default), verifies that files
-#'   actually exist on Retrosheet servers.
+#'   actually exist on Retrosheet servers and drops those that don't.
 #'
 #' @return A tibble with columns:
 #'   * `year` - The year of the data
 #'   * `type` - Always "gamelog"
 #'   * `url` - The URL to download the file
-#'   * `available` - Logical indicating if file exists (only if
-#'     `check_availability = TRUE`)
 #'
 #' @details
 #' Game logs provide summary statistics for each game including runs, hits,
@@ -33,38 +31,32 @@
 #'
 #' @export
 list_gamelogs <- function(year = NULL, check_availability = TRUE) {
-  
-  # Game logs available from 1871-2024
-  years <- if (is.null(year)) 1871:2024 else year
-  
-  # Construct URLs
+
+  years <- if (is.null(year)) 1871:retro_max_year() else year
+
   gamelogs_df <- tibble::tibble(
     year = years,
     type = "gamelog",
-    url = glue::glue("https://www.retrosheet.org/gamelogs/gl{year}.zip")
+    url = as.character(
+      glue::glue("{retrosheet_base_url()}/gamelogs/gl{years}.zip")
+    )
   )
-  
+
   # Check availability if requested
   if (check_availability) {
     cli::cli_progress_step(
       "Checking availability of {nrow(gamelogs_df)} game log file{?s}",
       msg_done = "Checked {nrow(gamelogs_df)} game log file{?s}"
     )
-    
+
     gamelogs_df <- gamelogs_df |>
-      dplyr::mutate(
-        available = purrr::map_lgl(.data$url, url_exists)
-      )
-    
-    n_available <- sum(gamelogs_df$available)
-    gamelogs_df <- gamelogs_df |>
-      dplyr::filter(.data$available)
-    
-    if (n_available == 0) {
+      dplyr::filter(purrr::map_lgl(.data$url, url_exists))
+
+    if (nrow(gamelogs_df) == 0) {
       cli::cli_warn("No game log files found")
     }
   }
-  
+
   gamelogs_df |>
     dplyr::arrange(dplyr::desc(.data$year))
 }
@@ -79,7 +71,7 @@ list_gamelogs <- function(year = NULL, check_availability = TRUE) {
 #' @param verbose Logical. If TRUE (default), displays progress messages.
 #'
 #' @return A tibble with game-level statistics. Columns include:
-#'   * `date` - Game date
+#'   * `date` - Game date (YYYYMMDD, character)
 #'   * `game_number` - Game number (0 = single game, 1-2 = doubleheader)
 #'   * `day_of_week` - Day of week
 #'   * `visiting_team` - Visiting team code
@@ -90,7 +82,10 @@ list_gamelogs <- function(year = NULL, check_availability = TRUE) {
 #'   * `home_game_number` - Home team's game number
 #'   * `visiting_score` - Visiting team runs
 #'   * `home_score` - Home team runs
-#'   * And ~160 more fields with detailed statistics
+#'   * And ~150 more fields with detailed statistics
+#'
+#'   Scores, counting statistics, attendance, and similar fields are parsed
+#'   as integers; identifiers and names stay character.
 #'
 #' @details
 #' ## Caching
@@ -114,10 +109,9 @@ list_gamelogs <- function(year = NULL, check_availability = TRUE) {
 #' gamelogs <- list_gamelogs(year = 2020:2024) |>
 #'   get_gamelogs()
 #'
-#' # Analyze home field advantage
+#' # Analyze home field advantage (scores are integers)
 #' gamelogs_2024 |>
-#'   mutate(home_win = home_score > visiting_score) |>
-#'   summarize(home_win_pct = mean(home_win))
+#'   dplyr::summarize(home_win_pct = mean(home_score > visiting_score))
 #' }
 #'
 #' @export
@@ -148,75 +142,31 @@ get_gamelogs <- function(gamelogs = NULL, year = NULL, verbose = TRUE) {
       if (verbose) {
         cli::cli_progress_step("Processing {yr} game log")
       }
-      
-      temp_dir <- tempdir()
-      
-      # Check cache
-      use_cached <- caching_enabled()
-      cache_path <- if (use_cached) {
-        file.path(cache_dir(), glue::glue("gl{yr}.zip"))
-      } else {
-        NULL
-      }
-      cached <- use_cached && !is.null(cache_path) && file.exists(cache_path)
-      
-      if (cached) {
-        if (verbose) {
-          cli::cli_alert_info("Using cached file for {yr}")
-        }
-        zip_file <- cache_path
-      } else {
-        zip_file <- if (use_cached) cache_path else tempfile(fileext = ".zip")
-        
-        if (verbose) {
-          cli::cli_alert_info("Downloading {yr} game log...")
-        }
-      }
-      
+
       tryCatch({
-        # Download if not cached
-        if (!cached) {
-          httr2::request(url) |>
-            httr2::req_retry(max_tries = 3, backoff = ~2) |>
-            httr2::req_timeout(30) |>
-            httr2::req_perform(path = zip_file)
-        }
-        
-        # Extract ZIP
-        unzip(zip_file, exdir = temp_dir, overwrite = TRUE)
-        
-        # Find CSV file (should be GL{YEAR}.TXT)
-        csv_files <- list.files(
-          temp_dir,
-          pattern = glue::glue("^GL{yr}\\.TXT$"),
-          full.names = TRUE,
-          ignore.case = TRUE
+        zip_file <- retro_download(
+          url,
+          cache_filename = basename(url),
+          timeout = 30,
+          verbose = verbose
         )
-        
-        if (length(csv_files) == 0) {
+        if (!caching_enabled()) {
+          on.exit(unlink(zip_file), add = TRUE)
+        }
+
+        extracted <- retro_extract(
+          zip_file,
+          pattern = glue::glue("^GL{yr}\\.TXT$")
+        )
+        on.exit(unlink(extracted$dir, recursive = TRUE), add = TRUE)
+
+        if (length(extracted$files) == 0) {
           cli::cli_warn("No game log file found in {yr} archive")
           return(tibble::tibble())
         }
-        
-        # Read CSV (no headers in Retrosheet game logs)
-        game_data <- readr::read_csv(
-          csv_files[1],
-          col_names = gamelog_field_names(),
-          col_types = readr::cols(.default = "c"),
-          show_col_types = FALSE
-        ) |>
-          dplyr::mutate(year = yr)
-        
-        # Clean up extracted files
-        unlink(csv_files)
-        
-        # Clean up temp zip if not using cache
-        if (!use_cached || is.null(cache_path) || cache_path != zip_file) {
-          unlink(zip_file)
-        }
-        
-        game_data
-        
+
+        read_gamelog_file(extracted$files[1], year = yr)
+
       }, error = function(e) {
         cli::cli_warn("Failed to download {yr}: {e$message}")
         tibble::tibble()
@@ -233,8 +183,45 @@ get_gamelogs <- function(gamelogs = NULL, year = NULL, verbose = TRUE) {
   all_data
 }
 
+#' Read a Retrosheet game log file (headerless CSV, 161 fields)
+#' @param path Path to a GL{year}.TXT file
+#' @param year Year of the data
+#' @noRd
+read_gamelog_file <- function(path, year) {
+  readr::read_csv(
+    path,
+    col_names = gamelog_field_names(),
+    col_types = gamelog_col_types(),
+    show_col_types = FALSE
+  ) |>
+    dplyr::mutate(year = year)
+}
+
+#' Column types for game log fields: integers for scores and counting
+#' statistics, character for everything else
+#' @noRd
+gamelog_col_types <- function() {
+  fields <- gamelog_field_names()
+
+  counting_stats <- c(
+    "ab", "h", "d", "t", "hr", "rbi", "sh", "sf", "hbp",
+    "bb", "ibb", "k", "sb", "cs", "gidp", "ci", "lob",
+    "pitchers_used", "individual_er", "team_er",
+    "wp", "balks", "po", "a", "e", "passed_balls", "dp", "tp"
+  )
+  int_fields <- c(
+    "game_number", "visiting_game_number", "home_game_number",
+    "visiting_score", "home_score", "length_outs",
+    "attendance", "time_of_game",
+    paste0("visiting_", counting_stats),
+    paste0("home_", counting_stats)
+  )
+
+  paste(ifelse(fields %in% int_fields, "i", "c"), collapse = "")
+}
+
 #' Get Game Log Field Names
-#' @keywords internal
+#' @noRd
 gamelog_field_names <- function() {
   c(
     "date", "game_number", "day_of_week",

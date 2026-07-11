@@ -6,11 +6,13 @@
 #' @return A tibble with columns:
 #'   * `park_id` - Retrosheet ballpark code
 #'   * `name` - Stadium name
+#'   * `aka` - Alternate name(s), if any
 #'   * `city` - City
 #'   * `state` - State/Province
-#'   * `start` - First date used
-#'   * `end` - Last date used
+#'   * `start` - First date used (MM/DD/YYYY)
+#'   * `end` - Last date used (MM/DD/YYYY); NA if still in use
 #'   * `league` - League(s)
+#'   * `notes` - Usage notes
 #'
 #' @examples
 #' \dontrun{
@@ -23,50 +25,47 @@
 #'
 #' @export
 get_park_ids <- function() {
-  url <- "https://www.retrosheet.org/parkcode.txt"
-  
+  url <- glue::glue("{retrosheet_base_url()}/parkcode.txt")
+
   cli::cli_progress_step("Downloading park codes")
-  
+
   tryCatch({
-    # Download with retry logic
     resp <- httr2::request(url) |>
       httr2::req_retry(max_tries = 3) |>
       httr2::req_timeout(15) |>
       httr2::req_perform()
-    
-    # Parse the text
-    content <- httr2::resp_body_string(resp)
-    lines <- strsplit(content, "\n")[[1]]
-    
-    # Parse fixed-width format
-    # Format: PARKID,NAME,CITY,STATE,START,END,LEAGUE
-    parks <- purrr::map_dfr(lines, function(line) {
-      if (nchar(line) < 10) return(NULL)
-      parts <- strsplit(line, ",")[[1]]
-      if (length(parts) < 5) return(NULL)
-      
-      tibble::tibble(
-        park_id = parts[1],
-        name = parts[2],
-        city = if (length(parts) > 2) parts[3] else NA_character_,
-        state = if (length(parts) > 3) parts[4] else NA_character_,
-        start = if (length(parts) > 4) parts[5] else NA_character_,
-        end = if (length(parts) > 5) parts[6] else NA_character_,
-        league = if (length(parts) > 6) parts[7] else NA_character_
-      )
-    })
-    
-    parks
-    
+
+    read_parkcode_file(httr2::resp_body_string(resp))
+
   }, error = function(e) {
     cli::cli_warn("Failed to download park codes: {e$message}")
     tibble::tibble()
   })
 }
 
+#' Parse the parkcode.txt reference file
+#'
+#' The file is comma-separated with a header row
+#' (PARKID,NAME,AKA,CITY,STATE,START,END,LEAGUE,NOTES) and quoted fields that
+#' can contain commas.
+#'
+#' @param content Full text of parkcode.txt
+#' @noRd
+read_parkcode_file <- function(content) {
+  readr::read_csv(
+    I(content),
+    col_types = readr::cols(.default = "c"),
+    show_col_types = FALSE
+  ) |>
+    dplyr::rename_with(tolower) |>
+    dplyr::rename(park_id = "parkid")
+}
+
 #' Get Retrosheet Team IDs
 #'
-#' Downloads and returns the official Retrosheet team codes for a given year.
+#' Returns the official Retrosheet team codes for a given year, extracted
+#' from the TEAM file in that year's regular-season event archive (cached
+#' like other event downloads).
 #'
 #' @param year Four-digit year
 #'
@@ -87,54 +86,36 @@ get_park_ids <- function() {
 #'
 #' @export
 get_team_ids <- function(year) {
-  # Retrosheet stores team files in the event archives
   url <- construct_event_url(year, "regular")
-  
+
   cli::cli_progress_step("Downloading team codes for {year}")
-  
+
   tryCatch({
-    # Download and extract
-    temp_zip <- tempfile(fileext = ".zip")
-    temp_dir <- tempdir()
-    
-    httr2::request(url) |>
-      httr2::req_retry(max_tries = 3) |>
-      httr2::req_timeout(30) |>
-      httr2::req_perform(path = temp_zip)
-    
-    unzip(temp_zip, exdir = temp_dir)
-    
-    # Find TEAM file
-    team_file <- list.files(temp_dir, pattern = "^TEAM", 
-                           full.names = TRUE, ignore.case = TRUE)
-    
-    if (length(team_file) == 0) {
+    zip_file <- retro_download(
+      url,
+      cache_filename = basename(url),
+      timeout = 60,
+      verbose = FALSE
+    )
+    if (!caching_enabled()) {
+      on.exit(unlink(zip_file), add = TRUE)
+    }
+
+    extracted <- retro_extract(zip_file, pattern = "^TEAM")
+    on.exit(unlink(extracted$dir, recursive = TRUE), add = TRUE)
+
+    if (length(extracted$files) == 0) {
       cli::cli_warn("No team file found for {year}")
       return(tibble::tibble())
     }
-    
-    # Read team file
-    lines <- readr::read_lines(team_file[1])
-    
-    # Parse format: TEAMID,LEAGUE,CITY,NAME
-    teams <- purrr::map_dfr(lines, function(line) {
-      parts <- strsplit(line, ",")[[1]]
-      if (length(parts) < 4) return(NULL)
-      
-      tibble::tibble(
-        team_id = parts[1],
-        league = parts[2],
-        city = parts[3],
-        name = parts[4]
-      )
-    })
-    
-    # Cleanup
-    unlink(temp_zip)
-    unlink(team_file)
-    
-    teams
-    
+
+    readr::read_csv(
+      extracted$files[1],
+      col_names = c("team_id", "league", "city", "name"),
+      col_types = readr::cols(.default = "c"),
+      show_col_types = FALSE
+    )
+
   }, error = function(e) {
     cli::cli_warn("Failed to download team codes: {e$message}")
     tibble::tibble()
@@ -146,16 +127,20 @@ get_team_ids <- function(year) {
 #' Downloads the Retrosheet biofile database containing player biographical
 #' information and IDs.
 #'
-#' @return A tibble with player information including:
+#' @return A tibble with one row per person and columns including:
 #'   * `player_id` - Retrosheet player ID
-#'   * `last_name` - Last name
-#'   * `first_name` - First name
-#'   * `mlb_debut` - MLB debut date
-#'   * And other biographical fields
+#'   * `last_name`, `first_name`, `nickname`
+#'   * `birth_date`, `birth_city`, `birth_state`, `birth_country`
+#'   * `play_debut`, `play_lastgame` - First/last game as a player
+#'   * `mgr_debut`, `coach_debut`, `ump_debut` (and matching `*_lastgame`)
+#'   * `death_date`, `death_city`, `death_state`, `death_country`
+#'   * `bats`, `throws`, `height`, `weight`
+#'   * `hof` - "HOF" for Hall of Fame members
+#'   * Plus cemetery and name-change fields
 #'
 #' @details
-#' This downloads a large file (~3 MB) and may take a moment. The result
-#' should be cached for repeated use.
+#' This downloads a multi-megabyte file and may take a moment. The file is
+#' not cached because Retrosheet updates it continuously.
 #'
 #' @examples
 #' \dontrun{
@@ -168,44 +153,52 @@ get_team_ids <- function(year) {
 #'
 #' @export
 get_player_ids <- function() {
-  url <- "https://www.retrosheet.org/biofile.txt"
-  
+  url <- glue::glue("{retrosheet_base_url()}/BIOFILE.TXT")
+
   cli::cli_progress_step("Downloading player database (this may take a moment)")
-  
+
   tryCatch({
-    # Download with retry
-    temp_file <- tempfile()
-    
+    temp_file <- tempfile(fileext = ".txt")
+    on.exit(unlink(temp_file), add = TRUE)
+
     httr2::request(url) |>
       httr2::req_retry(max_tries = 3) |>
       httr2::req_timeout(60) |>
       httr2::req_perform(path = temp_file)
-    
-    # Read the CSV file
-    # Format is comma-delimited with many fields
-    players <- readr::read_csv(
-      temp_file,
-      col_names = c(
-        "player_id", "last_name", "first_name", "nickname",
-        "bats", "throws", "birth_year", "birth_month", "birth_day",
-        "birth_country", "birth_state", "birth_city",
-        "death_year", "death_month", "death_day",
-        "death_country", "death_state", "death_city",
-        "height", "weight", "debut_date", "manager_debut", 
-        "coach_debut", "umpire_debut"
-      ),
-      show_col_types = FALSE
+
+    players <- read_biofile(temp_file)
+
+    cli::cli_alert_success(
+      "Downloaded {scales::comma(nrow(players))} player records"
     )
-    
-    unlink(temp_file)
-    
-    cli::cli_alert_success("Downloaded {scales::comma(nrow(players))} player records")
-    
+
     players
-    
+
   }, error = function(e) {
     cli::cli_warn("Failed to download player database: {e$message}")
     tibble::tibble()
   })
 }
 
+#' Parse the BIOFILE.TXT player database
+#'
+#' The file has a header row (PLAYERID,LAST,FIRST,NICKNAME,BIRTHDATE,
+#' BIRTH CITY,...) with 33 fields; names are normalized to snake_case.
+#'
+#' @param path Path to a downloaded BIOFILE.TXT
+#' @noRd
+read_biofile <- function(path) {
+  readr::read_csv(
+    path,
+    col_types = readr::cols(.default = "c"),
+    show_col_types = FALSE
+  ) |>
+    dplyr::rename_with(\(x) gsub(" ", "_", tolower(x))) |>
+    dplyr::rename(
+      player_id = "playerid",
+      last_name = "last",
+      first_name = "first",
+      birth_date = "birthdate",
+      death_date = "deathdate"
+    )
+}
