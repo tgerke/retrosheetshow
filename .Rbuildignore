@@ -13,3 +13,4 @@
 ^\.Rhistory$
 ^README_cache$
 ^decisions$
+^man/figures/.*\.pptx$

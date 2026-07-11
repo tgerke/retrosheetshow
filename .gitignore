@@ -15,9 +15,6 @@
 # Uncomment if you want to ignore generated docs
 # man/*.Rd
 
-# README figures
-man/figures/
-
 # README cache (knitr)
 cache/
 README_cache/
