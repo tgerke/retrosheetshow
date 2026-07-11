@@ -13,9 +13,6 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
-
-library(tibble)
-library(dplyr)
 ```
 
 # retrosheetshow <a href="https://tgerke.github.io/retrosheetshow"><img src="man/figures/logo.jpg" align="right" height="138" alt="retrosheetshow website" /></a>
@@ -48,44 +45,59 @@ remotes::install_github("tgerke/retrosheetshow")
 
 ### Play-by-Play Events
 
-```{r, eval = FALSE}
+```{r}
 library(retrosheetshow)
 library(dplyr)
 
 # See what's available
 list_events(year = 2020:2024)
+```
 
+```{r}
 # Download and parse event files (cached after the first download)
 events <- get_events(year = 2024, type = "post")
 
 # One row per game with all metadata
 games <- get_game_info(events)
+games
+```
 
+```{r}
 # One row per play
 plays <- get_plays(events)
+plays
+```
 
+```{r}
 # Interpret the event notation: event types, batting flags, outs, runs, RBI
 parsed <- parse_plays(plays)
 parsed |>
   count(event_type, sort = TRUE)
+```
 
+```{r}
 # Or go straight to full game state: outs, runners, and score before
 # every play (the foundation for run expectancy and leverage)
 states <- track_game_state(events)
+states
 ```
 
 ### Game Logs, Rosters, and Schedules
 
-```{r, eval = FALSE}
+```{r}
 # Game logs: one row per game with 161 summary fields.
 # Scores and counting stats are integers, ready for analysis:
 gamelogs <- get_gamelogs(year = 2024)
 gamelogs |>
   summarize(home_win_pct = mean(home_score > visiting_score))
+```
 
+```{r}
 # Team rosters by year
-yankees <- get_rosters(year = 2024, team = "NYA")
+get_rosters(year = 2024, team = "NYA")
+```
 
+```{r}
 # Season schedules, including postponements and makeup dates
 schedule <- get_schedules(year = 2024)
 schedule |> filter(!is.na(postponed))
@@ -93,7 +105,7 @@ schedule |> filter(!is.na(postponed))
 
 ### Reference Data
 
-```{r, eval = FALSE}
+```{r}
 parks <- get_park_ids()     # ballpark codes and locations
 teams <- get_team_ids(2024) # team codes for a season
 players <- get_player_ids() # player biographical database
@@ -105,10 +117,7 @@ parks |> filter(grepl("Fenway", name))
 
 A complete workflow to analyze recent World Series games:
 
-```{r, eval = FALSE}
-library(retrosheetshow)
-library(dplyr)
-
+```{r}
 # Get recent post-season data
 postseason <- list_events(year = 2020:2024, type = "post") |>
   get_events()
