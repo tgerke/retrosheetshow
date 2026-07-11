@@ -136,7 +136,7 @@ get_events <- function(events = NULL,
 
   if (verbose) {
     cli::cli_alert_success(
-      "Downloaded and parsed {scales::comma(nrow(all_data))} record{?s}"
+      "Downloaded and parsed {format(nrow(all_data), big.mark = ',')} record{?s}"
     )
   }
 

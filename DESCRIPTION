@@ -24,7 +24,6 @@ Imports:
     stringr,
     cli,
     glue,
-    scales,
     rlang,
     tools,
     utils

@@ -138,7 +138,7 @@ get_schedules <- function(schedules = NULL, year = NULL, verbose = TRUE) {
 
   if (verbose && nrow(all_data) > 0) {
     cli::cli_alert_success(
-      "Downloaded {scales::comma(nrow(all_data))} scheduled game{?s}"
+      "Downloaded {format(nrow(all_data), big.mark = ',')} scheduled game{?s}"
     )
   }
 

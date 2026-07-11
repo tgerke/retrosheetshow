@@ -93,7 +93,7 @@ get_rosters <- function(year, team = NULL, verbose = TRUE) {
       dplyr::distinct(.data$year, .data$team) |>
       nrow()
     cli::cli_alert_success(
-      "Extracted {scales::comma(nrow(all_rosters))} player{?s} from {n_teams} team{?s}"
+      "Extracted {format(nrow(all_rosters), big.mark = ',')} player{?s} from {n_teams} team{?s}"
     )
   }
 

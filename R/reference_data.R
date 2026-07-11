@@ -169,7 +169,7 @@ get_player_ids <- function() {
     players <- read_biofile(temp_file)
 
     cli::cli_alert_success(
-      "Downloaded {scales::comma(nrow(players))} player records"
+      "Downloaded {format(nrow(players), big.mark = ',')} player records"
     )
 
     players
