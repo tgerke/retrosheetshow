@@ -1,5 +1,18 @@
 # retrosheetshow 0.0.0.9000 (development version)
 
+## New features
+
+* New `parse_plays()` interprets Retrosheet event notation into typed,
+  analysis-ready columns: event type, plate-appearance/at-bat/hit flags,
+  hit value, fielding and trajectory detail, modifier flags, and outs,
+  runs, RBI, and per-runner advancement. The parser follows the published
+  event grammar and is validated field-by-field against Chadwick's
+  `cwevent` on committed World Series golden files, with full-season
+  cross-checks covering about 283,000 events from 1954 and 2024.
+* New vignette "Analyzing Play-by-Play Data" builds batting lines,
+  count-based splits, and a 1954 World Series reconstruction from parsed
+  plays.
+
 ## Breaking changes
 
 * `get_events()` now returns the record fields in wide character columns

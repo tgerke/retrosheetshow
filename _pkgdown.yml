@@ -67,6 +67,8 @@ navbar:
       menu:
         - text: "Getting Started"
           href: articles/getting_started.html
+        - text: "Analyzing Play-by-Play Data"
+          href: articles/analyzing_plays.html
         - text: "Game Logs, Rosters & Schedules"
           href: articles/gamelogs_rosters_schedules.html
         - text: "Retrosheet Format Reference"
@@ -114,6 +116,7 @@ reference:
       - get_events
       - get_game_info
       - get_plays
+      - parse_plays
       - parse_event_records
   
   - title: "Game Logs"
@@ -155,6 +158,7 @@ articles:
     navbar: ~
     contents:
       - getting_started
+      - analyzing_plays
       - gamelogs_rosters_schedules
 
   - title: "Documentation"

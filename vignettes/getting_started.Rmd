@@ -107,7 +107,26 @@ tribble(
   knitr::kable(caption = "Play-by-play records (2024 ALCS game 1)")
 ```
 
-The event strings (`7/F7S`, `S7/G56`, ...) are Retrosheet's play notation; see the **Retrosheet Format Reference** article for how to read them.
+The event strings (`7/F7S`, `S7/G56`, ...) are Retrosheet's play notation; see the **Retrosheet Format Reference** article for how to read them. You usually won't need to: `parse_plays()` interprets the notation into typed columns ready for analysis:
+
+```{r, eval = FALSE}
+parsed <- parse_plays(plays)
+parsed |>
+  select(event, event_type, is_hit, outs_on_play, runs_on_play, rbi)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~event, ~event_type, ~is_hit, ~outs_on_play, ~runs_on_play, ~rbi,
+  "7/F7S", "generic_out", FALSE, 1L, 0L, 0L,
+  "S7/G56", "single", TRUE, 0L, 0L, 0L,
+  "9/F89", "generic_out", FALSE, 1L, 0L, 0L,
+  "PB.1-2", "passed_ball", FALSE, 0L, 0L, 0L
+) |>
+  knitr::kable(caption = "Parsed plays (2024 ALCS game 1)")
+```
+
+The **Analyzing Play-by-Play Data** article builds batting lines, situational splits, and a 1954 World Series reconstruction from these columns.
 
 ## Game Logs (Faster Alternative)
 
@@ -254,6 +273,7 @@ tibble(games = 162L, wins = 94L, win_pct = 0.58) |>
 
 ## Next Steps
 
+- See **Analyzing Play-by-Play Data** for batting statistics and splits built from parsed plays
 - See the **Game Logs, Rosters & Schedules** article for more examples
 - Check the **Retrosheet Format Reference** to understand the event data structure
 - Browse the **Reference** documentation for all available functions

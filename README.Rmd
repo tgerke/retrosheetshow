@@ -63,6 +63,11 @@ games <- get_game_info(events)
 
 # One row per play
 plays <- get_plays(events)
+
+# Interpret the event notation: event types, batting flags, outs, runs, RBI
+parsed <- parse_plays(plays)
+parsed |>
+  count(event_type, sort = TRUE)
 ```
 
 ### Game Logs, Rosters, and Schedules
@@ -109,16 +114,23 @@ postseason <- list_events(year = 2020:2024, type = "post") |>
 games <- get_game_info(postseason)
 world_series <- games |> filter(gametype == "worldseries")
 
-# Play-by-play for those games
-plays <- get_plays(postseason) |>
-  semi_join(world_series, by = "game_id")
+# Home run leaders across five World Series, from the raw play-by-play
+get_plays(postseason) |>
+  semi_join(world_series, by = "game_id") |>
+  parse_plays() |>
+  filter(event_type == "home_run") |>
+  count(player_id, sort = TRUE) |>
+  left_join(
+    get_player_ids() |> select(player_id, first_name, last_name),
+    by = "player_id"
+  )
 ```
 
 ## Data Types
 
 ### Play-by-Play Events
 
-Detailed play-by-play data (the core of Retrosheet). Event files contain several types of records, which `get_events()` reads into a tidy tibble and `parse_event_records()` / `get_plays()` / `get_game_info()` interpret:
+Detailed play-by-play data (the core of Retrosheet). Event files contain several types of records, which `get_events()` reads into a tidy tibble and `parse_event_records()` / `get_plays()` / `get_game_info()` interpret. `parse_plays()` then turns the play notation itself into typed columns (event type, batting statistics, outs, runs, RBI, runner advancement), validated against Chadwick's `cwevent`:
 
 - **`id`**: Game identifier
 - **`info`**: Game metadata (date, teams, site, attendance, ...)

@@ -1,0 +1,232 @@
+---
+title: "Analyzing Play-by-Play Data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Analyzing Play-by-Play Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo = FALSE, message = FALSE}
+library(tibble)
+library(dplyr)
+```
+
+> **RETROSHEET DATA NOTICE**
+>
+> The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
+
+Play-by-play events are what make Retrosheet special: no other freely available source describes every play of (nearly) every major league game for over a century. This article shows how to turn that notation into batting statistics, splits, and historical reconstructions with `parse_plays()`.
+
+Because everything downloads from Retrosheet, the code chunks are not evaluated at build time; the tables shown are real outputs from the 2024 and 1954 postseasons.
+
+## From notation to typed columns
+
+`get_plays()` returns Retrosheet's raw event notation (`"S7/G56"`, `"64(1)3/GDP"`). `parse_plays()` interprets that notation and appends typed columns:
+
+```{r, eval = FALSE}
+library(retrosheetshow)
+library(dplyr)
+
+plays <- get_events(year = 2024, type = "post") |>
+  get_plays() |>
+  parse_plays()
+
+plays |>
+  select(event, event_type, is_hit, hit_value, trajectory, outs_on_play, rbi)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~event, ~event_type, ~is_hit, ~hit_value, ~trajectory, ~outs_on_play, ~rbi,
+  "7/F7S", "generic_out", FALSE, 0L, "fly", 1L, 0L,
+  "S7/G56", "single", TRUE, 1L, "ground", 0L, 0L,
+  "K", "strikeout", FALSE, 0L, NA, 1L, 0L,
+  "HR/F78XD.2-H;1-H", "home_run", TRUE, 4L, "fly", 0L, 3L
+) |>
+  knitr::kable(caption = "Parsed play columns (selected 2024 postseason plays)")
+```
+
+The parser follows the published grammar at <https://www.retrosheet.org/eventfile.htm> and is validated against Chadwick's `cwevent`, the community reference implementation (see the package's test suite). A season of plays parses in a few seconds.
+
+What happened, across the whole 2024 postseason:
+
+```{r, eval = FALSE}
+plays |>
+  count(event_type, sort = TRUE)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~event_type, ~n,
+  "generic_out", 1459L,
+  "strikeout", 739L,
+  "no_play", 599L,
+  "single", 443L,
+  "walk", 309L,
+  "double", 107L,
+  "home_run", 98L,
+  "stolen_base", 57L
+) |>
+  knitr::kable(caption = "Most common events, 2024 postseason (top 8)")
+```
+
+(`no_play` records mark substitutions; filter them out or ignore them, since all their statistic columns are zero.)
+
+## Batting lines from raw plays
+
+The flag columns follow official scoring rules — sacrifices and catcher's interference are plate appearances but not at bats, walks never count as at bats — so slash lines are a single `summarize()`:
+
+```{r, eval = FALSE}
+batting <- plays |>
+  summarize(
+    pa = sum(is_plate_appearance),
+    ab = sum(is_at_bat),
+    h = sum(is_hit),
+    hr = sum(event_type == "home_run"),
+    rbi = sum(rbi),
+    bb = sum(event_type %in% c("walk", "intentional_walk")),
+    hbp = sum(event_type == "hit_by_pitch"),
+    tb = sum(hit_value),
+    sf = sum(is_sac_fly),
+    .by = player_id
+  ) |>
+  mutate(
+    avg = h / ab,
+    obp = (h + bb + hbp) / (ab + bb + hbp + sf),
+    slg = tb / ab
+  )
+```
+
+Player IDs become names by joining the biographical database:
+
+```{r, eval = FALSE}
+players <- get_player_ids()
+
+batting |>
+  filter(pa >= 40) |>
+  left_join(
+    players |> select(player_id, first_name, last_name),
+    by = "player_id"
+  ) |>
+  arrange(desc(slg)) |>
+  select(first_name, last_name, pa, h, hr, rbi, avg, obp, slg)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~first_name, ~last_name, ~pa, ~h, ~hr, ~rbi, ~avg, ~obp, ~slg,
+  "Giancarlo", "Stanton", 62L, 15L, 7L, 16L, 0.273, 0.339, 0.709,
+  "Mark", "Vientos", 58L, 18L, 5L, 14L, 0.327, 0.362, 0.636,
+  "Juan", "Soto", 64L, 16L, 4L, 9L, 0.327, 0.469, 0.633,
+  "Pete", "Alonso", 58L, 12L, 4L, 10L, 0.273, 0.431, 0.568,
+  "Mookie", "Betts", 75L, 18L, 4L, 16L, 0.290, 0.387, 0.565
+) |>
+  knitr::kable(
+    digits = 3,
+    caption = "2024 postseason slugging leaders (minimum 40 PA)"
+  )
+```
+
+## Situational splits
+
+Each play carries the count when the event happened, so count-based splits need no extra data. Two strikes changes everything:
+
+```{r, eval = FALSE}
+plays |>
+  filter(is_plate_appearance, count != "??") |>
+  mutate(two_strikes = substr(count, 2, 2) == "2") |>
+  summarize(
+    pa = n(),
+    avg = sum(is_hit) / sum(is_at_bat),
+    slg = sum(hit_value) / sum(is_at_bat),
+    k_rate = mean(event_type == "strikeout"),
+    .by = two_strikes
+  )
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~two_strikes, ~pa, ~avg, ~slg, ~k_rate,
+  FALSE, 1526L, 0.318, 0.513, 0,
+  TRUE, 1740L, 0.156, 0.263, 0.425
+) |>
+  knitr::kable(
+    digits = 3,
+    caption = "2024 postseason hitting before vs. with two strikes"
+  )
+```
+
+Other splits that work directly from the parsed columns: by inning, by home/visiting team (`team` is 0/1), bunts vs. full swings (`is_bunt`), or ball-in-play trajectory (`trajectory`, `hit_location`).
+
+## A century of history: the 1954 World Series
+
+Retrosheet's postseason coverage reaches back to 1903, and the same three lines of code work all the way down. Game 1 of the 1954 World Series contains perhaps the most famous defensive play ever made — Willie Mays' over-the-shoulder catch off Vic Wertz, with the game tied in the eighth:
+
+```{r, eval = FALSE}
+plays_1954 <- get_events(year = 1954, type = "post") |>
+  get_plays() |>
+  parse_plays()
+
+plays_1954 |>
+  filter(game_id == "NY1195409290", inning == 8, team == 0, event != "NP") |>
+  select(player_id, event, event_type, trajectory, hit_location, outs_on_play)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~player_id, ~event, ~event_type, ~trajectory, ~hit_location, ~outs_on_play,
+  "dobyl101", "W", "walk", NA, NA, 0L,
+  "rosea101", "S6.1-2", "single", NA, NA, 0L,
+  "wertv101", "8/F8XD.2-3", "generic_out", "fly", "8XD", 1L,
+  "mitcd101", "W.1-2", "walk", NA, NA, 0L,
+  "poped101", "K/C", "strikeout", NA, NA, 1L,
+  "hegaj101", "7", "generic_out", NA, NA, 1L
+) |>
+  knitr::kable(caption = "Top of the 8th, 1954 World Series game 1")
+```
+
+The third row is The Catch: a fly out to center field, extra deep (`8XD`), with the runner from second only reaching third — a ball that leaves any other park. Two innings later the notation records how the game ended:
+
+```{r, eval = FALSE}
+plays_1954 |>
+  filter(game_id == "NY1195409290", event_type == "home_run") |>
+  select(player_id, inning, event, runs_on_play, rbi)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~player_id, ~inning, ~event, ~runs_on_play, ~rbi,
+  "rhodd101", 10L, "HR/9D.2-H;1-H", 3L, 3L
+) |>
+  knitr::kable(caption = "Dusty Rhodes' pinch-hit walk-off, 3 runs, 3 RBI")
+```
+
+Note the era differences: 1950s files rarely record counts, pitch sequences, or batted-ball trajectories, so those columns are `NA` when the source does not have them. Everything that is in the notation — events, outs, runs, RBI, advancement — parses the same in 1954 as in 2024.
+
+## What the parser can and cannot know
+
+`parse_plays()` works from the event string alone, one play at a time. That covers event classification, batting statistics, outs, runs, RBI, and the movement of every runner *mentioned* in the play. It does not track game state across plays, which means:
+
+* `runner1_dest`, `runner2_dest`, and `runner3_dest` are `NA` when the play does not mention that runner — a runner who holds is indistinguishable from an empty base.
+* Base-out states, run expectancy, and win probability need full lineup and state tracking, which is planned as a future layer on top of `parse_plays()`.
+* One RBI edge case (rule 9.04(a)(3): a runner from third scoring on an error with two outs carries no RBI) depends on the out count and defaults to crediting the RBI. In validation against two full seasons this affected 2 plays in about 283,000.
+
+## See Also
+
+- `?parse_plays` for the full column reference
+- The **Retrosheet Format Reference** article for the notation itself
+- The **Getting Started** article for downloading and extracting events
+
+## Attribution
+
+Remember to cite Retrosheet when using this data:
+
+> The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
