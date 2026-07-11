@@ -61,6 +61,10 @@ plays <- get_plays(events)
 parsed <- parse_plays(plays)
 parsed |>
   count(event_type, sort = TRUE)
+
+# Or go straight to full game state: outs, runners, and score before
+# every play (the foundation for run expectancy and leverage)
+states <- track_game_state(events)
 ```
 
 ### Game Logs, Rosters, and Schedules
@@ -128,7 +132,9 @@ several types of records, which `get_events()` reads into a tidy tibble
 and `parse_event_records()` / `get_plays()` / `get_game_info()`
 interpret. `parse_plays()` then turns the play notation itself into
 typed columns (event type, batting statistics, outs, runs, RBI, runner
-advancement), validated against Chadwick’s `cwevent`:
+advancement), and `track_game_state()` attaches the pre-play situation
+(outs, runner identities, score) by replaying each game. Both are
+validated against Chadwick’s `cwevent`:
 
 - **`id`**: Game identifier
 - **`info`**: Game metadata (date, teams, site, attendance, …)

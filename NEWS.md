@@ -2,6 +2,13 @@
 
 ## New features
 
+* New `track_game_state()` replays each game's record stream to attach the
+  pre-play situation to every play: outs, runner identities on each base,
+  and both teams' scores. Lineup tracking handles pinch-runner swaps and
+  the 2020+ automatic extra-inning runner (`radj`). With the out count
+  known it also applies the rule 9.04(a)(3) RBI exception, making the
+  `rbi` column exact. State columns matched Chadwick's `cwevent` on every
+  one of ~283,000 cross-checked events from 1954 and 2024.
 * New `parse_plays()` interprets Retrosheet event notation into typed,
   analysis-ready columns: event type, plate-appearance/at-bat/hit flags,
   hit value, fielding and trajectory detail, modifier flags, and outs,
@@ -10,8 +17,8 @@
   `cwevent` on committed World Series golden files, with full-season
   cross-checks covering about 283,000 events from 1954 and 2024.
 * New vignette "Analyzing Play-by-Play Data" builds batting lines,
-  count-based splits, and a 1954 World Series reconstruction from parsed
-  plays.
+  count-based splits, a 1954 World Series reconstruction, and a full run
+  expectancy (RE24) matrix from parsed plays and tracked game state.
 
 ## Breaking changes
 

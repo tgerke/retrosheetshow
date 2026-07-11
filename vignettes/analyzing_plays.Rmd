@@ -211,17 +211,98 @@ tribble(
 
 Note the era differences: 1950s files rarely record counts, pitch sequences, or batted-ball trajectories, so those columns are `NA` when the source does not have them. Everything that is in the notation — events, outs, runs, RBI, advancement — parses the same in 1954 as in 2024.
 
-## What the parser can and cannot know
+## Game state: outs, runners, and score
 
-`parse_plays()` works from the event string alone, one play at a time. That covers event classification, batting statistics, outs, runs, RBI, and the movement of every runner *mentioned* in the play. It does not track game state across plays, which means:
+`parse_plays()` reads one event string at a time, so it cannot know what the bases looked like when the play began. `track_game_state()` can: it replays each game's full record stream — plays, substitutions, and the automatic extra-inning runner — and returns every play with the situation it started from:
 
-* `runner1_dest`, `runner2_dest`, and `runner3_dest` are `NA` when the play does not mention that runner — a runner who holds is indistinguishable from an empty base.
-* Base-out states, run expectancy, and win probability need full lineup and state tracking, which is planned as a future layer on top of `parse_plays()`.
-* One RBI edge case (rule 9.04(a)(3): a runner from third scoring on an error with two outs carries no RBI) depends on the out count and defaults to crediting the RBI. In validation against two full seasons this affected 2 plays in about 283,000.
+```{r, eval = FALSE}
+states <- get_events(year = 2024, type = "post") |>
+  track_game_state()
+```
+
+The most famous at-bat of the 2024 postseason, as the tracker sees it — Freddie Freeman stepping in with the World Series opener on the line:
+
+```{r, eval = FALSE}
+states |>
+  filter(game_id == "LAN202410250", inning == 10, event_type == "home_run") |>
+  select(player_id, event, outs_before,
+         runner1_id, runner2_id, runner3_id, bat_score, fld_score)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~player_id, ~event, ~outs_before, ~runner1_id, ~runner2_id, ~runner3_id, ~bat_score, ~fld_score,
+  "freef001", "HR/F9D.3-H;2-H;1-H", 2L, "bettm001", "edmat001", "taylc001", 2L, 3L
+) |>
+  knitr::kable(
+    caption = "Freeman's walk-off grand slam: two outs, bases loaded, down a run"
+  )
+```
+
+State columns are validated against Chadwick's `cwevent` the same way the parser is: on the golden files and in full-season cross-checks, outs, scores, and all three runner identities agreed on every one of ~283,000 events. Knowing the out count also lets `track_game_state()` apply the one scoring rule the string-level parser cannot — no RBI for a runner from third scoring on an error with two outs — so its `rbi` column is exact.
+
+## Run expectancy
+
+With base-out states attached, the classic RE24 matrix is a dozen lines: for each play, count the runs scored from that point to the end of the half-inning, then average by starting state.
+
+```{r, eval = FALSE}
+states <- get_events(year = 2024) |>
+  track_game_state()
+
+re24 <- states |>
+  mutate(
+    bases = paste0(
+      if_else(is.na(runner1_id), "-", "1"),
+      if_else(is.na(runner2_id), "-", "2"),
+      if_else(is.na(runner3_id), "-", "3")
+    )
+  ) |>
+  mutate(
+    runs_rest = rev(cumsum(rev(runs_on_play))),
+    complete = sum(outs_on_play) == 3,
+    .by = c(game_id, inning, team)
+  ) |>
+  filter(complete) |>
+  summarize(re = mean(runs_rest), .by = c(bases, outs_before))
+
+re24 |>
+  tidyr::pivot_wider(
+    id_cols = bases, names_from = outs_before,
+    values_from = re, names_prefix = "outs_"
+  ) |>
+  arrange(bases)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~bases, ~outs_0, ~outs_1, ~outs_2,
+  "---", 0.48, 0.25, 0.09,
+  "--3", 1.36, 0.93, 0.34,
+  "-2-", 1.08, 0.65, 0.33,
+  "-23", 1.98, 1.37, 0.58,
+  "1--", 0.89, 0.52, 0.22,
+  "1-3", 1.85, 1.17, 0.48,
+  "12-", 1.46, 0.92, 0.43,
+  "123", 2.25, 1.61, 0.80
+) |>
+  knitr::kable(
+    digits = 2,
+    caption = "Run expectancy by base-out state, 2024 regular season"
+  )
+```
+
+Freeman's grand slam, in these terms: bases loaded with two outs is worth 0.80 expected runs, and he delivered four. The same state table is the foundation for RE24 batting value, stolen-base break-even rates, and bunting analysis — all now a `summarize()` away.
+
+## What the string-level parser alone cannot know
+
+If you use `parse_plays()` without `track_game_state()`, keep in mind:
+
+* `runner1_dest`, `runner2_dest`, and `runner3_dest` are `NA` when the play does not mention that runner — a runner who holds is indistinguishable from an empty base. `track_game_state()` resolves this with its `runner*_id` columns.
+* The `rbi` column defaults to crediting the rule 9.04(a)(3) edge case (runner from third scoring on an error with two outs); `track_game_state()` corrects it. In two full validation seasons this affected 2 plays in about 283,000.
 
 ## See Also
 
-- `?parse_plays` for the full column reference
+- `?parse_plays` and `?track_game_state` for the full column references
 - The **Retrosheet Format Reference** article for the notation itself
 - The **Getting Started** article for downloading and extracting events
 

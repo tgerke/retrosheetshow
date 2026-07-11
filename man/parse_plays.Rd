@@ -62,6 +62,7 @@ across plays, and is validated field-by-field against Chadwick's
 documented limit of string-level parsing: a runner from third scoring on
 an error with two outs officially carries no RBI (rule 9.04(a)(3)), but
 the out count is not knowable from the string, so the RBI is credited.
+\code{\link[=track_game_state]{track_game_state()}} tracks the out count and corrects it.
 }
 \examples{
 \dontrun{

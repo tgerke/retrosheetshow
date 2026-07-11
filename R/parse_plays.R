@@ -19,6 +19,7 @@
 #' documented limit of string-level parsing: a runner from third scoring on
 #' an error with two outs officially carries no RBI (rule 9.04(a)(3)), but
 #' the out count is not knowable from the string, so the RBI is credited.
+#' [track_game_state()] tracks the out count and corrects it.
 #'
 #' @param plays_data Tibble of plays from [get_plays()], containing at least
 #'   an `event` column

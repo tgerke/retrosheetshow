@@ -117,6 +117,7 @@ reference:
       - get_game_info
       - get_plays
       - parse_plays
+      - track_game_state
       - parse_event_records
   
   - title: "Game Logs"

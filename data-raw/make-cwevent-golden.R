@@ -17,7 +17,7 @@
 
 stopifnot(nzchar(Sys.which("cwevent")))
 
-fields <- "0,2,3,10,29,34,36,37,38,39,40,43,46,47,48,50,58,59,60,61,96"
+fields <- "0,2,3,4,8,9,10,26,27,28,29,34,36,37,38,39,40,43,46,47,48,50,58,59,60,61,96"
 fixtures <- file.path("tests", "testthat", "fixtures")
 
 for (year in c(2024, 1954)) {
