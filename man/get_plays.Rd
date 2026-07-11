@@ -10,7 +10,9 @@ get_plays(events_data)
 \item{events_data}{Tibble from \code{get_events()}}
 }
 \value{
-A tibble with one row per play
+A tibble with one row per play, with columns \code{inning}, \code{team}
+(0 = visiting, 1 = home), \code{player_id}, \code{count}, \code{pitches}, and \code{event},
+in addition to the identifying columns from \code{events_data}
 }
 \description{
 Extracts and parses play-by-play records from event data.

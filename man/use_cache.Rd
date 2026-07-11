@@ -20,8 +20,8 @@ When caching is disabled, files are always downloaded fresh and not stored
 in the cache directory. This can be useful for testing or when you need
 the absolute latest data.
 
-The setting is stored as an environment variable \code{RETROSHEETSHOW_CACHE}
-for the current R session only.
+The setting is stored in the \code{retrosheetshow.use_cache} option for the
+current R session only.
 }
 \examples{
 \dontrun{

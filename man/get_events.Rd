@@ -27,14 +27,19 @@ If FALSE, returns raw text content.}
 \item{verbose}{Logical. If TRUE (default), displays progress messages.}
 }
 \value{
-A tibble containing the parsed event data with columns depending on
-the record type. Common columns include:
+A tibble with one row per record in the event files:
 \itemize{
-\item \code{game_id} - Unique game identifier
+\item \code{game_id} - Unique game identifier (filled down from \code{id} records)
 \item \code{record_type} - Type of record (id, version, info, start, play, sub, etc.)
+\item \code{f1}-\code{f6} - The record's fields as character columns; their meaning
+depends on \code{record_type} (use \code{\link[=parse_event_records]{parse_event_records()}} to interpret them)
+\item \code{line_number} - Line number within the source event file
 \item \code{year} - Year of the game
 \item \code{type} - Type of event file (regular, allstar, post)
 }
+
+If \code{parse = FALSE}, a tibble with \code{year}, \code{type}, and \code{content} (one raw
+line per row) instead.
 }
 \description{
 Downloads Retrosheet event files and parses them into a tidy tibble format.
@@ -48,8 +53,7 @@ plays, substitutions, etc.). This function downloads the files and parses them
 into a tidy format suitable for analysis.
 \subsection{Caching}{
 
-Downloaded files are cached by default to speed up repeated access. The first
-download may take 1-2 minutes, but subsequent calls will be much faster (seconds).
+Downloaded files are cached by default to speed up repeated access.
 Use \code{cache_status()} to view cached files and \code{clear_cache()} to remove them.
 Disable caching with \code{use_cache(FALSE)}.
 }

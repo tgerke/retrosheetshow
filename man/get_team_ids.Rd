@@ -19,7 +19,9 @@ A tibble with columns:
 }
 }
 \description{
-Downloads and returns the official Retrosheet team codes for a given year.
+Returns the official Retrosheet team codes for a given year, extracted
+from the TEAM file in that year's regular-season event archive (cached
+like other event downloads).
 }
 \examples{
 \dontrun{

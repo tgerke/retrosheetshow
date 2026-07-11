@@ -78,5 +78,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Travis Gerke \email{tgerke@mail.harvard.edu}
 
+Authors:
+\itemize{
+  \item Travis Gerke \email{tgerke@mail.harvard.edu}
+}
+
 }
 \keyword{internal}

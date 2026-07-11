@@ -16,7 +16,7 @@ get_gamelogs(gamelogs = NULL, year = NULL, verbose = TRUE)
 \value{
 A tibble with game-level statistics. Columns include:
 \itemize{
-\item \code{date} - Game date
+\item \code{date} - Game date (YYYYMMDD, character)
 \item \code{game_number} - Game number (0 = single game, 1-2 = doubleheader)
 \item \code{day_of_week} - Day of week
 \item \code{visiting_team} - Visiting team code
@@ -27,8 +27,11 @@ A tibble with game-level statistics. Columns include:
 \item \code{home_game_number} - Home team's game number
 \item \code{visiting_score} - Visiting team runs
 \item \code{home_score} - Home team runs
-\item And ~160 more fields with detailed statistics
+\item And ~150 more fields with detailed statistics
 }
+
+Scores, counting statistics, attendance, and similar fields are parsed
+as integers; identifiers and names stay character.
 }
 \description{
 Downloads Retrosheet game log files and parses them into a tidy tibble.
@@ -58,10 +61,9 @@ gamelogs_2024 <- get_gamelogs(year = 2024)
 gamelogs <- list_gamelogs(year = 2020:2024) |>
   get_gamelogs()
 
-# Analyze home field advantage
+# Analyze home field advantage (scores are integers)
 gamelogs_2024 |>
-  mutate(home_win = home_score > visiting_score) |>
-  summarize(home_win_pct = mean(home_win))
+  dplyr::summarize(home_win_pct = mean(home_score > visiting_score))
 }
 
 }

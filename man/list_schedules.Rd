@@ -8,10 +8,10 @@ list_schedules(year = NULL, check_availability = TRUE)
 }
 \arguments{
 \item{year}{Numeric vector of years to check. If NULL (default), checks
-recent years (1877-2024).}
+all years (1877 onward).}
 
 \item{check_availability}{Logical. If TRUE (default), verifies that files
-actually exist.}
+actually exist and drops those that don't.}
 }
 \value{
 A tibble with columns:
@@ -19,7 +19,6 @@ A tibble with columns:
 \item \code{year} - The year
 \item \code{type} - Always "schedule"
 \item \code{url} - The URL to download
-\item \code{available} - Logical (only if \code{check_availability = TRUE})
 }
 }
 \description{

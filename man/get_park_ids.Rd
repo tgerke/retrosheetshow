@@ -11,11 +11,13 @@ A tibble with columns:
 \itemize{
 \item \code{park_id} - Retrosheet ballpark code
 \item \code{name} - Stadium name
+\item \code{aka} - Alternate name(s), if any
 \item \code{city} - City
 \item \code{state} - State/Province
-\item \code{start} - First date used
-\item \code{end} - Last date used
+\item \code{start} - First date used (MM/DD/YYYY)
+\item \code{end} - Last date used (MM/DD/YYYY); NA if still in use
 \item \code{league} - League(s)
+\item \code{notes} - Usage notes
 }
 }
 \description{

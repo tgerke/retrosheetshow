@@ -9,20 +9,19 @@
 #'   of years.
 #' @param type Character vector specifying the type(s) of events to list.
 #'   Options are:
-#'   * `"regular"` - Regular season games (1911-2024)
-#'   * `"allstar"` - All-Star games (1933-2024, with gaps)
-#'   * `"post"` - Post-season games (1903-2024, with gaps)
+#'   * `"regular"` - Regular season games (1911 onward)
+#'   * `"allstar"` - All-Star games (1933 onward, with gaps)
+#'   * `"post"` - Post-season games (1903 onward, with gaps)
 #'   Default is `"regular"`.
 #' @param check_availability Logical. If TRUE (default), verifies that files
-#'   actually exist on Retrosheet servers. If FALSE, returns all years in the
-#'   theoretical range (faster but may include non-existent files).
+#'   actually exist on Retrosheet servers and drops those that don't. If
+#'   FALSE, returns all years in the theoretical range (faster but may
+#'   include non-existent files).
 #'
 #' @return A tibble with columns:
 #'   * `year` - The year of the data
 #'   * `type` - The type of events ("regular", "allstar", or "post")
 #'   * `url` - The URL to download the file
-#'   * `available` - Logical indicating if the file exists (only if
-#'     `check_availability = TRUE`)
 #'
 #' @examples
 #' \dontrun{
@@ -72,23 +71,18 @@ list_events <- function(year = NULL,
       "Checking availability of {nrow(events_df)} file{?s}",
       msg_done = "Checked {nrow(events_df)} file{?s}"
     )
-    
+
+    n_requested <- nrow(events_df)
     events_df <- events_df |>
-      dplyr::mutate(
-        available = purrr::map_lgl(.data$url, url_exists)
-      )
-    
-    # Filter to only available files
-    n_available <- sum(events_df$available)
-    n_unavailable <- nrow(events_df) - n_available
-    
-    events_df <- events_df |>
-      dplyr::filter(.data$available)
-    
-    if (n_available == 0) {
+      dplyr::filter(purrr::map_lgl(.data$url, url_exists))
+    n_unavailable <- n_requested - nrow(events_df)
+
+    if (nrow(events_df) == 0) {
       cli::cli_warn("No files found matching the specified criteria")
     } else if (n_unavailable > 0) {
-      cli::cli_inform("Found {n_available} available file{?s} ({n_unavailable} unavailable)")
+      cli::cli_inform(
+        "Found {nrow(events_df)} available file{?s} ({n_unavailable} unavailable)"
+      )
     }
   }
   

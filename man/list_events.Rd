@@ -14,15 +14,16 @@ of years.}
 \item{type}{Character vector specifying the type(s) of events to list.
 Options are:
 \itemize{
-\item \code{"regular"} - Regular season games (1911-2024)
-\item \code{"allstar"} - All-Star games (1933-2024, with gaps)
-\item \code{"post"} - Post-season games (1903-2024, with gaps)
+\item \code{"regular"} - Regular season games (1911 onward)
+\item \code{"allstar"} - All-Star games (1933 onward, with gaps)
+\item \code{"post"} - Post-season games (1903 onward, with gaps)
 Default is \code{"regular"}.
 }}
 
 \item{check_availability}{Logical. If TRUE (default), verifies that files
-actually exist on Retrosheet servers. If FALSE, returns all years in the
-theoretical range (faster but may include non-existent files).}
+actually exist on Retrosheet servers and drops those that don't. If
+FALSE, returns all years in the theoretical range (faster but may
+include non-existent files).}
 }
 \value{
 A tibble with columns:
@@ -30,8 +31,6 @@ A tibble with columns:
 \item \code{year} - The year of the data
 \item \code{type} - The type of events ("regular", "allstar", or "post")
 \item \code{url} - The URL to download the file
-\item \code{available} - Logical indicating if the file exists (only if
-\code{check_availability = TRUE})
 }
 }
 \description{

@@ -1,8 +1,5 @@
-# Avoid R CMD check notes about .data
-utils::globalVariables(".data")
-
-#' Package startup message
-#' @keywords internal
+# Retrosheet requires this notice to be displayed prominently
+#' @noRd
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage(
     "retrosheetshow: Access Retrosheet baseball data\n",
@@ -14,4 +11,3 @@ utils::globalVariables(".data")
     "Website: https://www.retrosheet.org"
   )
 }
-

@@ -10,10 +10,13 @@ clear_cache(year = NULL, type = NULL, confirm = TRUE)
 \item{year}{Optional. Numeric vector of specific years to remove from cache.
 If NULL (default), removes all cached files.}
 
-\item{type}{Optional. Character vector of types to remove ("regular", "allstar", "post").
-If NULL (default), removes all types.}
+\item{type}{Optional. Character vector of types to remove ("regular",
+"allstar", "post", "gamelog", "schedule"). If NULL (default), removes
+all types.}
 
-\item{confirm}{Logical. If TRUE (default), asks for confirmation before deleting.}
+\item{confirm}{Logical. If TRUE (default), asks for confirmation before
+deleting. Requires an interactive session; pass \code{confirm = FALSE} in
+scripts.}
 }
 \value{
 Invisibly returns the number of files deleted

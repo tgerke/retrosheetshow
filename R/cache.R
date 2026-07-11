@@ -36,24 +36,41 @@ cache_dir <- function(create = TRUE) {
 }
 
 #' Get Cache File Path
-#' @keywords internal
+#' @noRd
 cache_file_path <- function(year, type = "regular") {
-  type <- match.arg(type, c("regular", "allstar", "post"))
-  
+  type <- match.arg(
+    type,
+    c("regular", "allstar", "post", "gamelog", "schedule")
+  )
+
   filename <- switch(type,
     regular = glue::glue("{year}eve.zip"),
     allstar = glue::glue("{year}as.zip"),
-    post = glue::glue("{year}post.zip")
+    post = glue::glue("{year}post.zip"),
+    gamelog = glue::glue("gl{year}.zip"),
+    schedule = glue::glue("{year}SKED.zip")
   )
-  
+
   file.path(cache_dir(), filename)
 }
 
 #' Check if File is in Cache
-#' @keywords internal
+#' @noRd
 is_cached <- function(year, type = "regular") {
   cache_path <- cache_file_path(year, type)
   file.exists(cache_path)
+}
+
+#' Patterns identifying cached files by type
+#' @noRd
+cache_type_patterns <- function() {
+  c(
+    regular = "^\\d{4}eve\\.zip$",
+    allstar = "^\\d{4}as\\.zip$",
+    post = "^\\d{4}post\\.zip$",
+    gamelog = "^gl\\d{4}\\.zip$",
+    schedule = "^\\d{4}SKED\\.zip$"
+  )
 }
 
 #' Clear Retrosheet Cache
@@ -62,9 +79,12 @@ is_cached <- function(year, type = "regular") {
 #'
 #' @param year Optional. Numeric vector of specific years to remove from cache.
 #'   If NULL (default), removes all cached files.
-#' @param type Optional. Character vector of types to remove ("regular", "allstar", "post").
-#'   If NULL (default), removes all types.
-#' @param confirm Logical. If TRUE (default), asks for confirmation before deleting.
+#' @param type Optional. Character vector of types to remove ("regular",
+#'   "allstar", "post", "gamelog", "schedule"). If NULL (default), removes
+#'   all types.
+#' @param confirm Logical. If TRUE (default), asks for confirmation before
+#'   deleting. Requires an interactive session; pass `confirm = FALSE` in
+#'   scripts.
 #'
 #' @return Invisibly returns the number of files deleted
 #'
@@ -103,23 +123,21 @@ clear_cache <- function(year = NULL, type = NULL, confirm = TRUE) {
   
   # Filter by year and type if specified
   if (!is.null(year) || !is.null(type)) {
-    types <- if (is.null(type)) c("regular", "allstar", "post") else type
-    years <- if (is.null(year)) NULL else year
-    
+    all_types <- names(cache_type_patterns())
+    types <- if (is.null(type)) all_types else match.arg(type, all_types, several.ok = TRUE)
+
     files_to_delete <- character()
     for (t in types) {
-      if (is.null(years)) {
+      if (is.null(year)) {
         # All years for this type
-        pattern <- switch(t,
-          regular = "eve\\.zip$",
-          allstar = "as\\.zip$",
-          post = "post\\.zip$"
+        pattern <- cache_type_patterns()[[t]]
+        files_to_delete <- c(
+          files_to_delete,
+          cached_files[grepl(pattern, basename(cached_files))]
         )
-        files_to_delete <- c(files_to_delete, 
-                            cached_files[grepl(pattern, cached_files)])
       } else {
         # Specific years for this type
-        for (y in years) {
+        for (y in year) {
           file_path <- cache_file_path(y, t)
           if (file.exists(file_path)) {
             files_to_delete <- c(files_to_delete, file_path)
@@ -142,6 +160,11 @@ clear_cache <- function(year = NULL, type = NULL, confirm = TRUE) {
   
   # Confirm deletion
   if (confirm) {
+    if (!interactive()) {
+      cli::cli_abort(
+        "Cannot confirm interactively; call {.code clear_cache(confirm = FALSE)}"
+      )
+    }
     response <- readline(
       glue::glue("Delete {length(files_to_delete)} file(s) ({size_mb} MB)? (y/N): ")
     )
@@ -195,22 +218,15 @@ cache_status <- function() {
   }
   
   # Parse filenames to get year and type
+  patterns <- cache_type_patterns()
   info <- purrr::map_dfr(cached_files, function(file) {
-    basename <- basename(file)
-    
-    # Determine type
-    type <- dplyr::case_when(
-      grepl("eve\\.zip$", basename) ~ "regular",
-      grepl("as\\.zip$", basename) ~ "allstar",
-      grepl("post\\.zip$", basename) ~ "post",
-      TRUE ~ "unknown"
-    )
-    
-    # Extract year
-    year <- as.integer(stringr::str_extract(basename, "^\\d{4}"))
-    
+    file_base <- basename(file)
+
+    matched <- names(patterns)[purrr::map_lgl(patterns, grepl, x = file_base)]
+    type <- if (length(matched) == 1) matched else "unknown"
+
     tibble::tibble(
-      year = year,
+      year = as.integer(stringr::str_extract(file_base, "\\d{4}")),
       type = type,
       size_mb = round(file.size(file) / 1024^2, 2),
       modified = file.mtime(file),
@@ -240,8 +256,8 @@ cache_status <- function() {
 #' in the cache directory. This can be useful for testing or when you need
 #' the absolute latest data.
 #'
-#' The setting is stored as an environment variable `RETROSHEETSHOW_CACHE`
-#' for the current R session only.
+#' The setting is stored in the `retrosheetshow.use_cache` option for the
+#' current R session only.
 #'
 #' @examples
 #' \dontrun{
@@ -267,7 +283,7 @@ use_cache <- function(enabled = TRUE) {
 }
 
 #' Check if Caching is Enabled
-#' @keywords internal
+#' @noRd
 caching_enabled <- function() {
   getOption("retrosheetshow.use_cache", TRUE)
 }

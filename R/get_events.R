@@ -13,12 +13,17 @@
 #'   If FALSE, returns raw text content.
 #' @param verbose Logical. If TRUE (default), displays progress messages.
 #'
-#' @return A tibble containing the parsed event data with columns depending on
-#'   the record type. Common columns include:
-#'   * `game_id` - Unique game identifier
+#' @return A tibble with one row per record in the event files:
+#'   * `game_id` - Unique game identifier (filled down from `id` records)
 #'   * `record_type` - Type of record (id, version, info, start, play, sub, etc.)
+#'   * `f1`-`f6` - The record's fields as character columns; their meaning
+#'     depends on `record_type` (use [parse_event_records()] to interpret them)
+#'   * `line_number` - Line number within the source event file
 #'   * `year` - Year of the game
 #'   * `type` - Type of event file (regular, allstar, post)
+#'
+#'   If `parse = FALSE`, a tibble with `year`, `type`, and `content` (one raw
+#'   line per row) instead.
 #'
 #' @details
 #' Retrosheet event files contain play-by-play data in a structured text format.
@@ -28,8 +33,7 @@
 #'
 #' ## Caching
 #'
-#' Downloaded files are cached by default to speed up repeated access. The first
-#' download may take 1-2 minutes, but subsequent calls will be much faster (seconds).
+#' Downloaded files are cached by default to speed up repeated access.
 #' Use `cache_status()` to view cached files and `clear_cache()` to remove them.
 #' Disable caching with `use_cache(FALSE)`.
 #'
@@ -51,11 +55,11 @@
 #'
 #' @export
 get_events <- function(events = NULL,
-                      year = NULL,
-                      type = "regular",
-                      parse = TRUE,
-                      verbose = TRUE) {
-  
+                       year = NULL,
+                       type = "regular",
+                       parse = TRUE,
+                       verbose = TRUE) {
+
   # If events tibble not provided, create one
   if (is.null(events)) {
     if (is.null(year)) {
@@ -63,7 +67,7 @@ get_events <- function(events = NULL,
     }
     events <- list_events(year = year, type = type, check_availability = TRUE)
   }
-  
+
   # Validate events tibble
   required_cols <- c("year", "type", "url")
   if (!all(required_cols %in% names(events))) {
@@ -71,181 +75,112 @@ get_events <- function(events = NULL,
       "{.arg events} must have columns: {.field {required_cols}}"
     )
   }
-  
+
   if (nrow(events) == 0) {
     cli::cli_warn("No events to download")
     return(tibble::tibble())
   }
-  
+
   if (verbose) {
     cli::cli_alert_info("Downloading {nrow(events)} event file{?s}")
   }
-  
-  # Determine event types for each year
-  events_with_type <- events |>
-    dplyr::mutate(
-      event_type = dplyr::case_when(
-        grepl("eve\\.zip$", .data$url) ~ "regular",
-        grepl("as\\.zip$", .data$url) ~ "allstar",
-        grepl("post\\.zip$", .data$url) ~ "post",
-        TRUE ~ "regular"
-      )
-    )
-  
+
   # Download and parse each file
   all_data <- purrr::pmap_dfr(
-    list(events_with_type$url, events_with_type$year, events_with_type$event_type),
+    list(events$url, events$year, events$type),
     function(url, yr, event_type) {
       if (verbose) {
         cli::cli_progress_step("Processing {yr} {event_type} events")
       }
-      
-      temp_dir <- tempdir()
-      
-      # Check cache first
-      use_cached <- caching_enabled()
-      cache_path <- if (use_cached) cache_file_path(yr, event_type) else NULL
-      cached <- use_cached && !is.null(cache_path) && file.exists(cache_path)
-      
-      if (cached) {
-        if (verbose) {
-          cli::cli_alert_info("Using cached file for {yr} {event_type}")
-        }
-        zip_file <- cache_path
-      } else {
-        # Download to cache or temp
-        if (use_cached) {
-          zip_file <- cache_path
-        } else {
-          zip_file <- tempfile(fileext = ".zip")
-        }
-        
-        if (verbose) {
-          cli::cli_alert_info("Downloading {yr} {event_type}...")
-        }
-      }
-      
+
       tryCatch({
-        # Download file if not cached
-        if (!cached) {
-          httr2::request(url) |>
-            httr2::req_retry(max_tries = 3, backoff = ~2) |>
-            httr2::req_timeout(60) |>
-            httr2::req_perform(path = zip_file)
-        }
-        
-        # Extract zip
-        unzip(zip_file, exdir = temp_dir, overwrite = TRUE)
-        
-        # Find event files (typically .EVA, .EVN, or .EVE extensions)
-        event_files <- list.files(
-          temp_dir, 
-          pattern = "\\.(EVA|EVN|EVE)$",
-          full.names = TRUE,
-          ignore.case = TRUE
+        zip_file <- retro_download(
+          url,
+          cache_filename = basename(url),
+          timeout = 60,
+          verbose = verbose
         )
-        
-        if (length(event_files) == 0) {
-          cli::cli_warn("No event files found in {yr} archive")
+        if (!caching_enabled()) {
+          on.exit(unlink(zip_file), add = TRUE)
+        }
+
+        # Event files use .EVA, .EVN, or .EVE extensions
+        extracted <- retro_extract(zip_file, pattern = "\\.(EVA|EVN|EVE)$")
+        on.exit(unlink(extracted$dir, recursive = TRUE), add = TRUE)
+
+        if (length(extracted$files) == 0) {
+          cli::cli_warn("No event files found in {yr} {event_type} archive")
           return(tibble::tibble())
         }
-        
-        # Read and combine all event files
-        all_events <- purrr::map_dfr(event_files, function(file) {
-          lines <- readr::read_lines(file, lazy = FALSE)
-          
+
+        all_events <- purrr::map_dfr(extracted$files, function(file) {
           if (parse) {
-            parse_event_file(lines, year = yr)
+            parse_event_file(file, year = yr)
           } else {
             tibble::tibble(
               year = yr,
-              content = lines
+              content = readr::read_lines(file, lazy = FALSE)
             )
           }
         })
-        
-        # Clean up extracted files (but keep cached zip)
-        unlink(event_files)
-        
-        # Clean up temp zip if not using cache
-        if (!use_cached || is.null(cache_path) || cache_path != zip_file) {
-          unlink(zip_file)
-        }
-        
+
+        all_events$type <- event_type
         all_events
-        
+
       }, error = function(e) {
-        cli::cli_warn("Failed to download {yr}: {e$message}")
+        cli::cli_warn("Failed to download {yr} {event_type} events: {e$message}")
         tibble::tibble()
       })
     }
   )
-  
-  # Add event type information
-  all_data <- all_data |>
-    dplyr::left_join(
-      events |> dplyr::select(.data$year, .data$type),
-      by = "year"
-    )
-  
+
   if (verbose) {
     cli::cli_alert_success(
       "Downloaded and parsed {scales::comma(nrow(all_data))} record{?s}"
     )
   }
-  
+
   all_data
 }
 
-#' Parse Retrosheet Event File Lines
-#' @keywords internal
-#' @param lines Character vector of lines from event file
+#' Parse a Retrosheet event file
+#'
+#' Reads a full event file with a quote-aware CSV parser (comment records can
+#' contain quoted commas) into one row per record, with the record's fields in
+#' character columns `f1`, `f2`, ... Fields a record doesn't have are NA.
+#'
+#' @param file Path to an event file (.EVA/.EVN/.EVE)
 #' @param year Year of the data
-parse_event_file <- function(lines, year) {
-  
-  # Split each line by comma
-  parsed <- purrr::map_dfr(seq_along(lines), function(i) {
-    line <- lines[i]
-    
-    if (nchar(line) == 0) {
-      return(NULL)
-    }
-    
-    # Split by comma, handling quoted fields
-    parts <- stringr::str_split(line, ",", simplify = FALSE)[[1]]
-    
-    if (length(parts) == 0) {
-      return(NULL)
-    }
-    
-    record_type <- parts[1]
-    
-    # Create a row with the record type and remaining fields
-    # Store as list-columns to handle varying field counts
-    tibble::tibble(
-      line_number = i,
-      record_type = record_type,
-      fields = list(parts[-1])
-    )
-  })
-  
-  parsed <- parsed |>
-    dplyr::mutate(year = year)
-  
-  # Further parse based on record type
-  parsed |>
+#' @noRd
+parse_event_file <- function(file, year) {
+
+  # Play records have 7 fields (the most of any standard record type); size
+  # the read to the widest record actually present
+  n_fields <- max(
+    7L,
+    utils::count.fields(file, sep = ",", quote = "\"", comment.char = "")
+  )
+
+  raw <- utils::read.csv(
+    file,
+    header = FALSE,
+    fill = TRUE,
+    quote = "\"",
+    comment.char = "",
+    colClasses = "character",
+    col.names = c("record_type", paste0("f", seq_len(n_fields - 1))),
+    blank.lines.skip = TRUE
+  )
+
+  tibble::as_tibble(raw) |>
     dplyr::mutate(
-      game_id = extract_game_id(.data$record_type, .data$fields),
-      .before = 1
+      dplyr::across(dplyr::starts_with("f"), ~ dplyr::na_if(.x, "")),
+      line_number = dplyr::row_number(),
+      year = year,
+      game_id = dplyr::if_else(
+        .data$record_type == "id", .data$f1, NA_character_
+      )
     ) |>
-    tidyr::fill(.data$game_id, .direction = "down")
+    tidyr::fill("game_id", .direction = "down") |>
+    dplyr::relocate("game_id", "record_type")
 }
-
-#' Extract game ID from record
-#' @keywords internal
-extract_game_id <- function(record_type, fields) {
-  ifelse(record_type == "id", 
-         purrr::map_chr(fields, ~.x[1], .default = NA_character_),
-         NA_character_)
-}
-

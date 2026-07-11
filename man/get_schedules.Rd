@@ -17,14 +17,15 @@ get_schedules(schedules = NULL, year = NULL, verbose = TRUE)
 A tibble with columns:
 \itemize{
 \item \code{date} - Game date (YYYYMMDD)
-\item \code{game_number} - Game number
+\item \code{game_number} - 0 for a single game, 1-2 for doubleheaders
 \item \code{day_of_week} - Day of week
-\item \code{visiting_team} - Visiting team code
-\item \code{visiting_league} - Visiting team league
-\item \code{home_team} - Home team code
-\item \code{home_league} - Home team league
-\item \code{game_time} - Scheduled time
-\item \code{postponement_indicator} - If postponed
+\item \code{visiting_team}, \code{visiting_league}, \code{visiting_game_number}
+\item \code{home_team}, \code{home_league}, \code{home_game_number}
+\item \code{day_night} - Day/night indicator
+\item \code{location} - Park ID when the game was scheduled at a non-home site
+(only recorded in recent seasons; NA otherwise)
+\item \code{postponed} - Postponement/cancellation reason, if any
+\item \code{makeup_date} - Makeup date for postponed games
 \item \code{year} - Year
 }
 }
@@ -36,9 +37,9 @@ Downloads Retrosheet schedule files and parses them into a tidy tibble.
 # Get 2024 schedule
 schedule_2024 <- get_schedules(year = 2024)
 
-# Find all day games
+# Find postponed games
 schedule_2024 |>
-  filter(grepl("^1[0-4]:", game_time))
+  dplyr::filter(!is.na(postponed))
 }
 
 }

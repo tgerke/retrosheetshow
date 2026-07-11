@@ -1,29 +1,39 @@
 #' Retrosheet Base URL
-#' @keywords internal
+#' @noRd
 retrosheet_base_url <- function() {
   "https://www.retrosheet.org"
 }
 
+#' Most recent season with published Retrosheet files
+#'
+#' Bump this constant when Retrosheet releases a new season. Requested years
+#' beyond it are still honored when passed explicitly; this only bounds the
+#' default "all years" ranges in the list_* functions.
+#' @noRd
+retro_max_year <- function() {
+  2025L
+}
+
 #' Construct Retrosheet Event File URLs
-#' @keywords internal
 #' @param year Year of the data
 #' @param type Type of events ("regular", "allstar", "post")
+#' @noRd
 construct_event_url <- function(year, type = "regular") {
   base <- retrosheet_base_url()
-  
+
   type <- match.arg(type, c("regular", "allstar", "post"))
-  
+
   filename <- switch(type,
     regular = glue::glue("{year}eve.zip"),
     allstar = glue::glue("{year}as.zip"),
     post = glue::glue("{year}post.zip")
   )
-  
+
   glue::glue("{base}/events/{filename}")
 }
 
 #' Check if URL exists
-#' @keywords internal
+#' @noRd
 url_exists <- function(url) {
   tryCatch({
     resp <- httr2::request(url) |>
@@ -39,17 +49,16 @@ url_exists <- function(url) {
 }
 
 #' Get available years for a given event type
-#' @keywords internal
+#' @noRd
 get_available_years <- function(type = "regular") {
   type <- match.arg(type, c("regular", "allstar", "post"))
-  
-  # These ranges are based on the Retrosheet documentation
+
+  # No All-Star game in 1945 or 2020; no post-season in 1904 or 1994
   year_ranges <- list(
-    regular = 1911:2024,
-    allstar = c(1933:1944, 1946:2019, 2021:2024),
-    post = c(1903, 1905:1993, 1995:2024)
+    regular = 1911:retro_max_year(),
+    allstar = c(1933:1944, 1946:2019, 2021:retro_max_year()),
+    post = c(1903, 1905:1993, 1995:retro_max_year())
   )
-  
+
   year_ranges[[type]]
 }
-

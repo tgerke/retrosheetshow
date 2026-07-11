@@ -23,11 +23,26 @@ parse_event_records(events_raw, record_types = NULL)
 }}
 }
 \value{
-A tibble with parsed and structured event data
+A tibble with one row per record. Columns depend on the record
+types present:
+\itemize{
+\item \code{info}: \code{info_type}, \code{info_value}
+\item \code{start}/\code{sub}: \code{player_id}, \code{player_name}, \code{team}, \code{batting_order},
+\code{position}
+\item \code{play}: \code{inning}, \code{team}, \code{player_id}, \code{count}, \code{pitches}, \code{event}
+\item \code{com}: \code{comment}
+\item \code{data}: \code{data_type}, \code{player_id}, \code{earned_runs}
+\item \code{version}: \code{version}
+}
+
+Records of other types get their fields combined into a \code{value} column.
+When multiple record types are included, columns not applying to a row
+are NA.
 }
 \description{
-Takes a tibble of raw event records and parses them into a more structured
-format with separate columns for different record types.
+Takes a tibble of raw event records from \code{get_events()} and interprets the
+generic field columns (\code{f1}-\code{f6}) according to each record type, adding
+named, typed columns.
 }
 \examples{
 \dontrun{

@@ -7,13 +7,17 @@
 get_player_ids()
 }
 \value{
-A tibble with player information including:
+A tibble with one row per person and columns including:
 \itemize{
 \item \code{player_id} - Retrosheet player ID
-\item \code{last_name} - Last name
-\item \code{first_name} - First name
-\item \code{mlb_debut} - MLB debut date
-\item And other biographical fields
+\item \code{last_name}, \code{first_name}, \code{nickname}
+\item \code{birth_date}, \code{birth_city}, \code{birth_state}, \code{birth_country}
+\item \code{play_debut}, \code{play_lastgame} - First/last game as a player
+\item \code{mgr_debut}, \code{coach_debut}, \code{ump_debut} (and matching \verb{*_lastgame})
+\item \code{death_date}, \code{death_city}, \code{death_state}, \code{death_country}
+\item \code{bats}, \code{throws}, \code{height}, \code{weight}
+\item \code{hof} - "HOF" for Hall of Fame members
+\item Plus cemetery and name-change fields
 }
 }
 \description{
@@ -21,8 +25,8 @@ Downloads the Retrosheet biofile database containing player biographical
 information and IDs.
 }
 \details{
-This downloads a large file (~3 MB) and may take a moment. The result
-should be cached for repeated use.
+This downloads a multi-megabyte file and may take a moment. The file is
+not cached because Retrosheet updates it continuously.
 }
 \examples{
 \dontrun{

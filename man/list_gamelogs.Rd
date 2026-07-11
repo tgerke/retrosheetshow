@@ -8,10 +8,10 @@ list_gamelogs(year = NULL, check_availability = TRUE)
 }
 \arguments{
 \item{year}{Numeric vector of years to check. If NULL (default), checks all
-available years (1871-2024).}
+available years (1871 onward).}
 
 \item{check_availability}{Logical. If TRUE (default), verifies that files
-actually exist on Retrosheet servers.}
+actually exist on Retrosheet servers and drops those that don't.}
 }
 \value{
 A tibble with columns:
@@ -19,8 +19,6 @@ A tibble with columns:
 \item \code{year} - The year of the data
 \item \code{type} - Always "gamelog"
 \item \code{url} - The URL to download the file
-\item \code{available} - Logical indicating if file exists (only if
-\code{check_availability = TRUE})
 }
 }
 \description{

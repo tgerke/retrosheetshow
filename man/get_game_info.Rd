@@ -10,7 +10,10 @@ get_game_info(events_data)
 \item{events_data}{Tibble from \code{get_events()}}
 }
 \value{
-A tibble with one row per game containing game metadata
+A tibble with one row per game containing game metadata, one
+column per info type present in the data (e.g. \code{visteam}, \code{hometeam},
+\code{date}, \code{site}, \code{attendance}). If a game repeats an info type, the
+values are collapsed with "; ".
 }
 \description{
 Extracts game-level information (date, teams, site, etc.) from parsed
