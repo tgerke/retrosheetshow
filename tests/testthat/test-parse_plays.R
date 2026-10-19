@@ -34,6 +34,14 @@ test_that("hits are classified with value, fielder, and batter destination", {
   expect_true(all(out$is_at_bat))
 })
 
+test_that("a ground rule double credits no fielder", {
+  # 1990s files sometimes add a fielder after DGR; the spec says none is given
+  out <- pp(c("DGR7/F7L.2-H;1-3", "DGR9/L9LD"))
+  expect_equal(out$event_type, c("double", "double"))
+  expect_equal(out$fielded_by, c(NA_integer_, NA_integer_))
+  expect_equal(out$hit_location, c("7L", "9LD"))
+})
+
 test_that("simple and multi-fielder outs retire the batter", {
   out <- pp(c("8/F78", "63/G6M", "143/G1", "3/G.2-3"))
   expect_equal(unique(out$event_type), "generic_out")
@@ -102,6 +110,22 @@ test_that("walks and hit-by-pitch put the batter on first without an at bat", {
   # run scored on the passed ball, not the walk: explicit (NR)
   expect_equal(out$runs_on_play[6], 1L)
   expect_equal(out$rbi[6], 0L)
+})
+
+test_that("the one-letter intentional walk I takes a baserunning event", {
+  # from a 1988 file: ball four, and the runner from second out stealing third
+  out <- pp(c("I+CS3(25)", "IW+WP.2-3"))
+  expect_equal(out$event_type, c("intentional_walk", "intentional_walk"))
+  expect_equal(out$batter_dest, c(1L, 1L))
+  expect_equal(out$outs_on_play, c(1L, 0L))
+  expect_equal(out$runner2_dest, c(0L, 3L))
+})
+
+test_that("a run stolen during ball four is not batted in", {
+  # W+SBH from a 1988 file; a bases-loaded walk still forces in an RBI
+  out <- pp(c("W+SBH", "IW+SBH", "W.3-H;2-3;1-2"))
+  expect_equal(out$runs_on_play, c(1L, 1L, 1L))
+  expect_equal(out$rbi, c(0L, 0L, 1L))
 })
 
 test_that("errors and fielder's choices put the batter on first with an at bat", {
@@ -206,6 +230,15 @@ test_that("modifiers yield trajectory, location, and bunt flags", {
     c("6M", "78", "9LD", "5", "15", "7LD", "78")
   )
   expect_equal(out$is_bunt, c(FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE))
+})
+
+test_that("a location after a bunt code or a repeated trajectory is kept", {
+  # notation from 1988 files; 2R is one of Chadwick's archaic locations
+  out <- pp(c(
+    "34/SH/B3S.1-2", "26(1)4/BG/GDP/BG1S", "6/L/L6", "8/L/L8XD", "23/G2R.2-3"
+  ))
+  expect_equal(out$hit_location, c("3S", "1S", "6", "8XD", "2R"))
+  expect_equal(out$trajectory, c(NA, "ground", "line", "line", "ground"))
 })
 
 test_that("no-play records carry no statistics", {

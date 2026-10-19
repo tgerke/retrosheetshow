@@ -53,6 +53,19 @@
 
 ## Bug fixes
 
+* `parse_plays()` now reads the older hit location codes that contain an R
+  (`8RS`, `8RXD`, `2RF`), along with the trajectory before them. About 5,700
+  plays in 1993 and 9,000 in 1999 gain a `hit_location` and `trajectory`;
+  1954, 2024, and 2025 are unaffected.
+* `parse_plays()` keeps a hit location written after a bare bunt code or a
+  repeated trajectory (`34/SH/B3S`, `6/L/L6`) instead of dropping it.
+* `parse_plays()` recognizes the one-letter intentional walk `I` in a
+  compound event (`I+CS3(25)`), as it already did `IW`. The play used to
+  come back unclassified, without its out.
+* `parse_plays()` no longer credits an RBI for a run stolen during ball
+  four (`W+SBH`).
+* `parse_plays()` no longer reports a fielder for a ground rule double
+  written with one (`DGR7`); the notation guide says it names none.
 * `get_events()` no longer duplicates every record when the same year is
   requested with more than one `type`; the event type now travels with each
   file's records instead of being joined back by year.
@@ -89,7 +102,8 @@
   minute, with identical output.
 * The full-season `cwevent` cross-check is now a script,
   `data-raw/cwevent-crosscheck.R`, and the 2025 World Series joins the
-  golden test fixtures.
+  golden test fixtures. The 1954, 1988, 1993, 1999, 2024, and 2025 seasons
+  match on every compared field.
 * `cache_status()` and `clear_cache()` now recognize game log and schedule
   artifacts, and `clear_cache(type =)` accepts `"gamelog"` and
   `"schedule"`.
