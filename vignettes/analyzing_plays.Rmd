@@ -239,7 +239,48 @@ tribble(
   )
 ```
 
-State columns are validated against Chadwick's `cwevent` the same way the parser is: on the golden files and in full-season cross-checks, outs, scores, and all three runner identities agreed on every one of ~283,000 events. Knowing the out count also lets `track_game_state()` apply the one scoring rule the string-level parser cannot — no RBI for a runner from third scoring on an error with two outs — so its `rbi` column is exact.
+Each play also carries the defense behind it: the pitcher, the fielder at every position, and the pitcher's running pitch count wherever Retrosheet has pitch sequences.
+
+```{r, eval = FALSE}
+states |>
+  filter(game_id == "LAN202410250", inning == 10, event_type == "home_run") |>
+  select(player_id, pitcher_id, pitch_count_before,
+         fielder2_id, fielder6_id, fielder8_id)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~player_id, ~pitcher_id, ~pitch_count_before, ~fielder2_id, ~fielder6_id, ~fielder8_id,
+  "freef001", "cortn001", 1L, "wella002", "volpa001", "judga001"
+) |>
+  knitr::kable(
+    caption = "Pitcher, pitch count, catcher, shortstop, and center fielder behind Freeman's grand slam"
+  )
+```
+
+Nestor Cortes came in to face Shohei Ohtani and retired him on one pitch. The Yankees then walked Mookie Betts intentionally, which has taken no pitches since 2017, so Freeman's home run came on Cortes's second pitch of the night.
+
+When a pitcher or batter is replaced in the middle of a count, the scoring rules can charge the outcome to the player who left: a walk goes to the departed pitcher if the batter was ahead 2-0, 2-1, or 3-anything, and a strikeout goes to the departed batter if he left with two strikes. `resp_pitcher_id` and `resp_batter_id` record who was charged. Two strikeouts in the 2025 postseason belong to batters who had already left the game:
+
+```{r, eval = FALSE}
+get_events(year = 2025, type = "post") |>
+  track_game_state() |>
+  filter(resp_batter_id != player_id) |>
+  select(game_id, inning, player_id, resp_batter_id, pitches, event)
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~game_id, ~inning, ~player_id, ~resp_batter_id, ~pitches, ~event,
+  "LAN202510160", 7L, "perkb002", "chouj001", "SS.F.FBFBS", "K",
+  "LAN202510010", 8L, "andum001", "bensw001", "FCFB..S", "K"
+) |>
+  knitr::kable(
+    caption = "Strikeouts charged to the batter who left with two strikes, 2025 postseason"
+  )
+```
+
+State columns are validated against Chadwick's `cwevent` the same way the parser is: on the golden files and in full-season cross-checks of 1954, 2024, and 2025, the outs, scores, runners, pitcher, fielders, and responsible pitcher and batter agreed on every one of ~480,000 events. Knowing the out count also lets `track_game_state()` apply the one scoring rule the string-level parser cannot — no RBI for a runner from third scoring on an error with two outs — so its `rbi` column is exact.
 
 ## Run expectancy
 

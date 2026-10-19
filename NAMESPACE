@@ -3,6 +3,7 @@
 export(cache_dir)
 export(cache_status)
 export(clear_cache)
+export(count_pitches)
 export(gamelog_fields)
 export(get_events)
 export(get_game_info)

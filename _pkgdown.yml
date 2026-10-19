@@ -118,6 +118,7 @@ reference:
       - get_plays
       - parse_plays
       - track_game_state
+      - count_pitches
       - parse_event_records
   
   - title: "Game Logs"

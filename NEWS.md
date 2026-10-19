@@ -2,6 +2,27 @@
 
 ## New features
 
+* `track_game_state()` now reports the defense on every play: the pitcher
+  (`pitcher_id`) and the fielders at positions 2-9 (`fielder2_id` through
+  `fielder9_id`), followed through double switches, position changes,
+  pinch hitters and runners who stay in the game, and starting pitchers
+  who are also the designated hitter (allowed since 2022). Two more columns
+  name the pitcher and batter charged with each play (`resp_pitcher_id`,
+  `resp_batter_id`). They differ from the players involved only for a walk
+  issued by a reliever who entered with the batter ahead in the count (rule
+  9.16(h)) or a strikeout by a pinch hitter who entered with two strikes
+  (rule 9.15(b)). Where Retrosheet has pitch sequences, `pitches_on_play`
+  and `pitch_count_before` give each record's pitches and the pitcher's
+  running total. The new player columns matched Chadwick's `cwevent` on
+  every one of ~480,000 cross-checked events from 1954, 2024, and 2025.
+  Pitch counts matched `cwevent`'s per-plate-appearance totals wherever
+  those seasons have pitch sequences, and the official box scores for all
+  60 pitching appearances in the 2024 World Series. The 13 new columns
+  come after the existing ones, which are unchanged. A new warning flags a
+  play whose defense has a vacant position or one player at two positions.
+* New `count_pitches()` counts the pitches thrown in Retrosheet pitch
+  sequences, leaving out pickoff throws, markers, no-pitch calls, and
+  automatic balls and strikes.
 * New `track_game_state()` replays each game's record stream to attach the
   pre-play situation to every play: outs, runner identities on each base,
   and both teams' scores. Lineup tracking handles pinch-runner swaps and
@@ -63,6 +84,12 @@
 
 ## Improvements
 
+* `parse_plays()`, and with it `track_game_state()`, is about ten times
+  faster: three seasons of plays parse in 6 seconds instead of more than a
+  minute, with identical output.
+* The full-season `cwevent` cross-check is now a script,
+  `data-raw/cwevent-crosscheck.R`, and the 2025 World Series joins the
+  golden test fixtures.
 * `cache_status()` and `clear_cache()` now recognize game log and schedule
   artifacts, and `clear_cache(type =)` accepts `"gamelog"` and
   `"schedule"`.
