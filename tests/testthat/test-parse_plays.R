@@ -248,7 +248,7 @@ test_that("parse_plays() matches Chadwick cwevent on World Series goldens", {
   # cwevent dest codes 5 and 6 are unearned-run variants of "scored"
   clamp <- function(dest) pmin(dest, 4)
 
-  for (fixture in c("2024WS", "1954WS")) {
+  for (fixture in c("2025WS", "2024WS", "1954WS")) {
     raw <- readr::read_lines(test_path("fixtures", paste0(fixture, ".EVE")))
     game_of_line <- cumsum(startsWith(raw, "id,"))
     plays <- tibble::tibble(line = raw) |>

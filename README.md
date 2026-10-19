@@ -129,11 +129,11 @@ parsed |>
 ```
 
 ``` r
-# Or go straight to full game state: outs, runners, and score before
-# every play (the foundation for run expectancy and leverage)
+# Or go straight to full game state: outs, runners, score, and the
+# defense before every play (the foundation for run expectancy and leverage)
 states <- track_game_state(events)
 states
-#> # A tibble: 3,978 × 36
+#> # A tibble: 3,978 × 49
 #>    game_id      record_type line_number  year type  inning  team player_id count
 #>    <chr>        <chr>             <int> <dbl> <chr>  <int> <int> <chr>     <chr>
 #>  1 NYA202410140 play                 55  2024 post       1     0 kwans001  32   
@@ -147,7 +147,7 @@ states
 #>  9 NYA202410140 play                 63  2024 post       1     1 wella002  12   
 #> 10 NYA202410140 play                 64  2024 post       1     1 stanm004  21   
 #> # ℹ 3,968 more rows
-#> # ℹ 27 more variables: pitches <chr>, event <chr>, event_type <chr>,
+#> # ℹ 40 more variables: pitches <chr>, event <chr>, event_type <chr>,
 #> #   is_plate_appearance <lgl>, is_at_bat <lgl>, is_hit <lgl>, hit_value <int>,
 #> #   fielded_by <int>, hit_location <chr>, trajectory <chr>, is_bunt <lgl>,
 #> #   is_sac_fly <lgl>, is_sac_hit <lgl>, is_gdp <lgl>, outs_on_play <int>,
@@ -275,8 +275,9 @@ and `parse_event_records()` / `get_plays()` / `get_game_info()`
 interpret. `parse_plays()` then turns the play notation itself into
 typed columns (event type, batting statistics, outs, runs, RBI, runner
 advancement), and `track_game_state()` attaches the pre-play situation
-(outs, runner identities, score) by replaying each game. Both are
-validated against Chadwick’s `cwevent`:
+(outs, runner identities, score, the pitcher and fielders, and pitch
+counts where available) by replaying each game. Both are validated
+against Chadwick’s `cwevent`:
 
 - **`id`**: Game identifier
 - **`info`**: Game metadata (date, teams, site, attendance, …)

@@ -76,8 +76,8 @@ parsed |>
 ```
 
 ```{r}
-# Or go straight to full game state: outs, runners, and score before
-# every play (the foundation for run expectancy and leverage)
+# Or go straight to full game state: outs, runners, score, and the
+# defense before every play (the foundation for run expectancy and leverage)
 states <- track_game_state(events)
 states
 ```
@@ -143,7 +143,7 @@ get_plays(postseason) |>
 
 ### Play-by-Play Events
 
-Detailed play-by-play data (the core of Retrosheet). Event files contain several types of records, which `get_events()` reads into a tidy tibble and `parse_event_records()` / `get_plays()` / `get_game_info()` interpret. `parse_plays()` then turns the play notation itself into typed columns (event type, batting statistics, outs, runs, RBI, runner advancement), and `track_game_state()` attaches the pre-play situation (outs, runner identities, score) by replaying each game. Both are validated against Chadwick's `cwevent`:
+Detailed play-by-play data (the core of Retrosheet). Event files contain several types of records, which `get_events()` reads into a tidy tibble and `parse_event_records()` / `get_plays()` / `get_game_info()` interpret. `parse_plays()` then turns the play notation itself into typed columns (event type, batting statistics, outs, runs, RBI, runner advancement), and `track_game_state()` attaches the pre-play situation (outs, runner identities, score, the pitcher and fielders, and pitch counts where available) by replaying each game. Both are validated against Chadwick's `cwevent`:
 
 - **`id`**: Game identifier
 - **`info`**: Game metadata (date, teams, site, attendance, ...)

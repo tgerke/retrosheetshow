@@ -112,11 +112,10 @@ parse_plays <- function(plays_data) {
     implied_runner_records(primary, secondary, rows),
     explicit_advance_records(adv_str, rows)
   ) |>
-    dplyr::slice_max(
-      .data$priority,
-      n = 1, with_ties = FALSE,
-      by = c(".row", "runner")
-    )
+    # the highest-priority record per runner, earliest on ties; arrange()
+    # is stable, and avoids slice_max()'s per-group cost on a season
+    dplyr::arrange(.data$.row, .data$runner, dplyr::desc(.data$priority)) |>
+    dplyr::distinct(.data$.row, .data$runner, .keep_all = TRUE)
 
   # runs scored on batter events carry an RBI unless marked (NR)/(NORBI) or
   # on a GDP; Retrosheet marks the exceptions (e.g. runs that score on the
@@ -143,13 +142,20 @@ parse_plays <- function(plays_data) {
       )
     )
 
-  totals <- recs |>
-    dplyr::summarize(
-      outs_on_play = sum(.data$out),
-      runs_on_play = sum(.data$dest == 4L, na.rm = TRUE),
-      rbi = sum(.data$dest == 4L & .data$rbi_credit, na.rm = TRUE),
-      .by = ".row"
-    )
+  scored <- recs$dest %in% 4L
+  sums <- rowsum(
+    cbind(
+      as.integer(recs$out), as.integer(scored),
+      as.integer(scored & recs$rbi_credit %in% TRUE)
+    ),
+    recs$.row
+  )
+  totals <- tibble::tibble(
+    .row = as.integer(rownames(sums)),
+    outs_on_play = unname(sums[, 1]),
+    runs_on_play = unname(sums[, 2]),
+    rbi = unname(sums[, 3])
+  )
 
   dests <- recs |>
     dplyr::filter(.data$runner %in% c("B", "1", "2", "3")) |>
@@ -433,30 +439,33 @@ summarize_modifiers <- function(mods_str, rows) {
   traj_re <- "^(BG|BP|BL|G|F|L|P)([1-9][0-9SMLDXFW]*)?$"
   loc_re <- "^[1-9][0-9SMLDXFW]*$"
 
-  per_row <- rows |>
+  mods <- rows |>
     dplyr::mutate(mod = mods_str) |>
     dplyr::filter(!is.na(.data$mod), .data$mod != "") |>
     tidyr::separate_longer_delim("mod", "/") |>
     dplyr::mutate(mod = stringr::str_remove(.data$mod, "[-+]+$")) |>
-    dplyr::filter(.data$mod != "") |>
-    dplyr::summarize(
-      # a sacrifice hit is a bunt by definition; BF is a foul bunt
-      is_bunt = any(stringr::str_detect(.data$mod, "^B[GPLF]|^SH")),
-      is_sac_fly = any(stringr::str_detect(.data$mod, "^SF")),
-      is_sac_hit = any(stringr::str_detect(.data$mod, "^SH")),
-      is_gdp = any(stringr::str_detect(.data$mod, "^B?GDP")),
-      traj_mod = .data$mod[stringr::str_detect(.data$mod, traj_re)][1],
-      loc_mod = .data$mod[stringr::str_detect(.data$mod, loc_re)][1],
-      .by = ".row"
-    )
+    dplyr::filter(.data$mod != "")
+
+  # per play: whether any modifier matches, or the first one that does.
+  # Matching all modifiers at once avoids a summarize() group per play.
+  any_match <- function(pattern) {
+    rows$.row %in% mods$.row[stringr::str_detect(mods$mod, pattern)]
+  }
+  first_match <- function(pattern) {
+    hits <- mods[stringr::str_detect(mods$mod, pattern), ]
+    hits <- hits[!duplicated(hits$.row), ]
+    hits$mod[match(rows$.row, hits$.row)]
+  }
 
   rows |>
-    dplyr::left_join(per_row, by = ".row") |>
     dplyr::mutate(
-      is_bunt = dplyr::coalesce(.data$is_bunt, FALSE),
-      is_sac_fly = dplyr::coalesce(.data$is_sac_fly, FALSE),
-      is_sac_hit = dplyr::coalesce(.data$is_sac_hit, FALSE),
-      is_gdp = dplyr::coalesce(.data$is_gdp, FALSE),
+      # a sacrifice hit is a bunt by definition; BF is a foul bunt
+      is_bunt = any_match("^B[GPLF]|^SH"),
+      is_sac_fly = any_match("^SF"),
+      is_sac_hit = any_match("^SH"),
+      is_gdp = any_match("^B?GDP"),
+      traj_mod = first_match(traj_re),
+      loc_mod = first_match(loc_re),
       traj_code = stringr::str_extract(.data$traj_mod, "^(BG|BP|BL|G|F|L|P)"),
       trajectory = dplyr::case_when(
         .data$traj_code %in% c("G", "BG") ~ "ground",

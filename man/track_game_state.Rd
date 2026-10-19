@@ -19,26 +19,70 @@ One row per play record, in file order: the columns of
 runners on first, second, and third (\code{NA} for an empty base)
 \item \code{bat_score}, \code{fld_score}: runs already scored by the batting and
 fielding teams
+\item \code{pitcher_id}: the pitcher on the mound
+\item \code{resp_pitcher_id}: the pitcher charged with the play; differs from
+\code{pitcher_id} only for a walk after a mid-count pitching change (rule
+9.16(h))
+\item \code{resp_batter_id}: the batter charged with the play; differs from
+\code{player_id} only for a strikeout after a two-strike pinch hitter
+(rule 9.15(b))
+\item \code{fielder2_id} through \code{fielder9_id}: the fielders at positions 2
+(catcher) through 9 (right field)
+\item \code{pitches_on_play}: pitches thrown during this record. Every record of
+a plate appearance repeats the pitches before it, so only the new ones
+are counted, and summing over a pitcher's records gives his total.
+\item \code{pitch_count_before}: pitches the current pitcher had thrown in the
+game before this record
 }
 }
 \description{
 Replays every game's records in order to reconstruct the situation before
 each play: the number of outs, the runners on base (with player
-identities), and the score. This is the state that situational analysis
-conditions on -- base-out states, run expectancy, leverage.
+identities), the score, and the defense on the field. This is the state
+that situational analysis conditions on -- base-out states, run
+expectancy, leverage.
 }
 \details{
 The tracker consumes the full record stream from \code{\link[=get_events]{get_events()}}, not just
-the play records: \code{start}/\code{sub} records maintain each team's lineup so
-pinch runners replace the correct runner on base, and \code{radj} records place
-the automatic runner that begins extra innings from 2020 onward. Plays are
+the play records: \code{start}/\code{sub} records maintain each team's lineup and
+fielding positions, so pinch runners replace the correct runner on base
+and every play knows its pitcher and fielders. \code{radj} records place the
+automatic runner that begins extra innings from 2020 onward. Plays are
 parsed with \code{\link[=parse_plays]{parse_plays()}} and runner destinations drive the base-state
 transitions; a runner not mentioned by a play holds his base.
+
+Fielders are tracked by position: each \code{start} or \code{sub} record puts its
+player at the position it names, which covers double switches, players
+changing positions, and pinch hitters or runners who stay in the game on
+defense. A starting pitcher who is also the designated hitter (allowed
+from 2022) holds both roles until a relief pitcher replaces him on the
+mound.
+\subsection{Responsible pitcher and batter}{
+
+When a pitcher or batter is replaced in the middle of a plate appearance,
+the official scoring rules can charge the outcome to the player who left.
+A walk is charged to the departed pitcher if the batter was ahead 2-0,
+2-1, 3-0, 3-1, or 3-2 when the reliever entered (rule 9.16(h)); a
+strikeout is charged to the departed batter if he left with two strikes
+(rule 9.15(b)). The count at the change is the one on the play record
+preceding the substitution. When that count is unknown (\verb{??}, common in
+older files), the reliever or pinch hitter is charged.
+}
+
+\subsection{Pitch counts}{
+
+Pitch counts use \code{\link[=count_pitches]{count_pitches()}} and need pitch sequences, which only
+some games have; the game's \verb{info,pitches} record says which (see
+\code{\link[=get_game_info]{get_game_info()}}). In games without them both pitch-count columns are
+\code{NA}. Within a game that has them, a completed plate appearance with no
+sequence is a gap in the data: its count is \code{NA}, and so is the
+pitcher's running total from then on.
 
 Knowing the out count also closes the one RBI gap in string-level parsing:
 the \code{rbi} column returned here removes the credit when a runner from third
 scores on an error with two outs (rule 9.04(a)(3)), unless the file marks
 \code{(RBI)} explicitly.
+}
 }
 \examples{
 \dontrun{
@@ -54,6 +98,13 @@ states |>
       ifelse(is.na(runner2_id), "-", "2"),
       ifelse(is.na(runner3_id), "-", "3")
     )
+  )
+
+# pitches thrown by each pitcher in each game
+states |>
+  dplyr::summarize(
+    pitches = sum(pitches_on_play),
+    .by = c(game_id, pitcher_id)
   )
 }
 
