@@ -5,7 +5,9 @@ expectancy model, with leverage index and WPA, and first planned it as
 exported functions with a vignette. The design was approved on 2026-10-19 and
 moved the same day to a separate analysis project, `ttop`, which phase 3 will
 also use. The design note moved with it, to
-`decisions/2026-10-19-win-expectancy.md` in that project.
+`decisions/2026-10-19-win-expectancy.md` in that project. This supersedes the
+plan in `2026-07-10-play-parser.md` to build win probability as a layer of
+this package.
 
 ## Why it isn't here
 
