@@ -86,9 +86,9 @@ parse_plays <- function(plays_data) {
   basic <- stringr::str_extract(main, "^(?:[^/(]+|\\([^)]*\\))+")
   mods_str <- substr(main, nchar(basic) + 2L, nchar(main))
 
-  # K+event / W+event / IW+event compounds; a trailing "+"/"-" elsewhere is a
-  # hard/softly-hit-ball marker
-  is_compound <- stringr::str_detect(basic, "^(K|I?W)[^+]*\\+") &
+  # K+event / W+event / IW+event compounds (I is the same intentional walk as
+  # IW); a trailing "+"/"-" elsewhere is a hard/softly-hit-ball marker
+  is_compound <- stringr::str_detect(basic, "^(K|IW?|W)[^+]*\\+") &
     !stringr::str_detect(basic, "^WP")
   is_compound[is.na(is_compound)] <- FALSE
   secondary <- ifelse(is_compound, stringr::str_extract(basic, "(?<=\\+).*"), NA)
@@ -192,12 +192,13 @@ parse_plays <- function(plays_data) {
         event_type == "home_run" ~ 4L,
         .default = 0L
       ),
-      # "99" codes an unknown play: no fielding credit is given
+      # "99" codes an unknown play: no fielding credit is given. A ground
+      # rule double names no fielder, though some 1990s files add one (DGR7)
       fielded_by = dplyr::if_else(
         event_type %in% c(
           "single", "double", "triple", "home_run", "generic_out",
           "fielders_choice", "error", "foul_error"
-        ) & !stringr::str_detect(primary, "^99"),
+        ) & !stringr::str_detect(primary, "^(99|DGR)"),
         int_or_na(stringr::str_extract(primary, "[1-9]")),
         NA_integer_
       ),
@@ -369,7 +370,9 @@ implied_runner_records <- function(primary, secondary, rows) {
         .default = int_or_na(.data$base)
       ),
       rbi_yes = FALSE,
-      rbi_no = FALSE,
+      # runs implied by a steal, caught stealing, or pickoff are never
+      # batted in, even after a walk (W+SBH)
+      rbi_no = TRUE,
       err_param = FALSE,
       priority = 2L
     ) |>
@@ -436,8 +439,13 @@ out_negated_by_error <- function(params) {
 #' Per-play modifier summaries: flags, trajectory, and hit location
 #' @noRd
 summarize_modifiers <- function(mods_str, rows) {
-  traj_re <- "^(BG|BP|BL|G|F|L|P)([1-9][0-9SMLDXFW]*)?$"
-  loc_re <- "^[1-9][0-9SMLDXFW]*$"
+  # R appears only in archaic locations such as 2R
+  loc <- "[1-9][0-9SMLDXFWR]*"
+  traj_re <- paste0("^(BG|BP|BL|G|F|L|P)(", loc, ")?$")
+  # a location can also follow a bare bunt code (B3S), and when trajectory
+  # modifiers repeat, it can be on a later one (6/L/L6)
+  traj_loc_re <- paste0("^(BG|BP|BL|B|G|F|L|P)", loc, "$")
+  loc_re <- paste0("^", loc, "$")
 
   mods <- rows |>
     dplyr::mutate(mod = mods_str) |>
@@ -465,6 +473,7 @@ summarize_modifiers <- function(mods_str, rows) {
       is_sac_hit = any_match("^SH"),
       is_gdp = any_match("^B?GDP"),
       traj_mod = first_match(traj_re),
+      traj_loc_mod = first_match(traj_loc_re),
       loc_mod = first_match(loc_re),
       traj_code = stringr::str_extract(.data$traj_mod, "^(BG|BP|BL|G|F|L|P)"),
       trajectory = dplyr::case_when(
@@ -475,9 +484,7 @@ summarize_modifiers <- function(mods_str, rows) {
         .default = NA_character_
       ),
       hit_location = dplyr::coalesce(
-        dplyr::na_if(
-          stringr::str_remove(.data$traj_mod, "^(BG|BP|BL|G|F|L|P)"), ""
-        ),
+        stringr::str_remove(.data$traj_loc_mod, "^(BG|BP|BL|B|G|F|L|P)"),
         .data$loc_mod
       )
     )
