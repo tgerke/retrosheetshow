@@ -378,15 +378,14 @@ Game 1 of the 2024 World Series, the distribution of LI, plate-appearance WPA
 leaders, and the calibration and Stoll comparison from a new
 `data-raw/we-validation.R`. The Retrosheet notice goes at the top and bottom.
 
-## For review
+## Review
 
-* Is a five-season shape window with a season-level tilt acceptable in place
-  of a plain window?
-* Should 1973-2021 get separate levels for DH and non-DH games?
-* Is a tilt, with η from the window, the right form for home-field advantage?
-* Should automatic-runner innings get their own empirical start distribution?
-* Should WPA be credited on plate-appearance rows only?
-* Are these the right held-out seasons?
+Approved as written on 2026-10-19. That settles the six questions left open
+for review: phase 2 uses the five-season shape window with a season-level
+tilt, separate DH and non-DH levels for 1973-2021, home-field advantage as a
+tilt with η from the window, an empirical start distribution for
+automatic-runner innings, WPA credited on plate-appearance rows only, and the
+held-out seasons listed above.
 
 The information used here was obtained free of charge from and is copyrighted
 by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd.,
