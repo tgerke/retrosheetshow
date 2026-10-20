@@ -113,6 +113,26 @@ players <- get_player_ids() # player biographical database
 parks |> filter(grepl("Fenway", name))
 ```
 
+### Player IDs in Other Systems
+
+The [Chadwick Baseball Bureau register](https://github.com/chadwickbureau/register) links each Retrosheet player ID to the IDs used by MLB Advanced Media (Statcast and the MLB Stats API), Baseball-Reference, and FanGraphs. `get_chadwick_register()` downloads it once and caches it; `refresh = TRUE` fetches the current version.
+
+```{r}
+ids <- get_chadwick_register()
+ids
+```
+
+```{r}
+# MLBAM IDs for the pitchers in the 2024 postseason, ready to join to
+# Statcast data
+states |>
+  distinct(pitcher_id) |>
+  left_join(ids, by = c(pitcher_id = "key_retro")) |>
+  select(pitcher_id, key_mlbam, name_first, name_last)
+```
+
+The register comes with its own license; see [Chadwick Register Attribution](#chadwick-register-attribution).
+
 ## Workflow Example
 
 A complete workflow to analyze recent World Series games:
@@ -193,6 +213,10 @@ See the [Retrosheet website](https://www.retrosheet.org/game.htm) for complete d
 Retrosheet is an all-volunteer 501(c)(3) charitable organization. To support their work, visit [retrosheet.org](https://www.retrosheet.org) or [donate](https://www.retrosheet.org/donate/index.html).
 
 The retrosheetshow package is not affiliated with Retrosheet but is grateful for their work in preserving baseball history.
+
+## Chadwick Register Attribution
+
+`get_chadwick_register()` contains information from the [Chadwick Baseball Bureau Register](https://github.com/chadwickbureau/register), which is made available under the [ODC Attribution License](http://opendatacommons.org/licenses/by/1.0/). If you publish work that uses it, the license asks you to include a notice like this one.
 
 ## Related Resources
 
