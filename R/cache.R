@@ -69,7 +69,8 @@ cache_type_patterns <- function() {
     allstar = "^\\d{4}as\\.zip$",
     post = "^\\d{4}post\\.zip$",
     gamelog = "^gl\\d{4}\\.zip$",
-    schedule = "^\\d{4}SKED\\.zip$"
+    schedule = "^\\d{4}SKED\\.zip$",
+    register = "^chadwick-register\\.zip$"
   )
 }
 
@@ -78,10 +79,12 @@ cache_type_patterns <- function() {
 #' Removes cached Retrosheet files to free up disk space or force fresh downloads.
 #'
 #' @param year Optional. Numeric vector of specific years to remove from cache.
-#'   If NULL (default), removes all cached files.
+#'   If NULL (default), removes all cached files. The Chadwick register has no
+#'   year, so clearing by year leaves it in place.
 #' @param type Optional. Character vector of types to remove ("regular",
-#'   "allstar", "post", "gamelog", "schedule"). If NULL (default), removes
-#'   all types.
+#'   "allstar", "post", "gamelog", "schedule", "register"). If NULL
+#'   (default), removes all types. "register" is the Chadwick register
+#'   downloaded by [get_chadwick_register()].
 #' @param confirm Logical. If TRUE (default), asks for confirmation before
 #'   deleting. Requires an interactive session; pass `confirm = FALSE` in
 #'   scripts.
@@ -135,8 +138,8 @@ clear_cache <- function(year = NULL, type = NULL, confirm = TRUE) {
           files_to_delete,
           cached_files[grepl(pattern, basename(cached_files))]
         )
-      } else {
-        # Specific years for this type
+      } else if (t != "register") {
+        # Specific years for this type (the register has none)
         for (y in year) {
           file_path <- cache_file_path(y, t)
           if (file.exists(file_path)) {

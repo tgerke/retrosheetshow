@@ -33,19 +33,23 @@ test_that("cache_file_path covers every artifact type", {
 test_that("cache_status identifies all cached artifact types", {
   local_temp_cache()
 
-  files <- c("2024eve.zip", "2023as.zip", "2022post.zip", "gl2024.zip", "2024SKED.zip")
+  files <- c(
+    "2024eve.zip", "2023as.zip", "2022post.zip", "gl2024.zip", "2024SKED.zip",
+    "chadwick-register.zip"
+  )
   for (f in files) {
     writeLines("x", file.path(cache_dir(), f))
   }
 
   status <- suppressMessages(cache_status())
 
-  expect_equal(nrow(status), 5)
+  expect_equal(nrow(status), 6)
   expect_setequal(
     status$type,
-    c("regular", "allstar", "post", "gamelog", "schedule")
+    c("regular", "allstar", "post", "gamelog", "schedule", "register")
   )
   expect_equal(sort(unique(status$year)), c(2022, 2023, 2024))
+  expect_true(is.na(status$year[status$type == "register"]))
 })
 
 test_that("clear_cache removes files by year and type", {
@@ -70,6 +74,21 @@ test_that("clear_cache removes files by year and type", {
   n <- suppressMessages(clear_cache(confirm = FALSE))
   expect_equal(n, 2)
   expect_equal(suppressMessages(clear_cache(confirm = FALSE)), 0)
+})
+
+test_that("clear_cache removes the register by type but not by year", {
+  local_temp_cache()
+  register <- file.path(cache_dir(), "chadwick-register.zip")
+  writeLines("x", register)
+  writeLines("x", file.path(cache_dir(), "2024eve.zip"))
+
+  n <- suppressMessages(clear_cache(year = 2024, confirm = FALSE))
+  expect_equal(n, 1)
+  expect_true(file.exists(register))
+
+  n <- suppressMessages(clear_cache(type = "register", confirm = FALSE))
+  expect_equal(n, 1)
+  expect_false(file.exists(register))
 })
 
 test_that("clear_cache with confirm requires an interactive session", {

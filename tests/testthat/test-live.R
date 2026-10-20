@@ -77,3 +77,17 @@ test_that("live: player database downloads", {
   expect_equal(players$player_id[1], "aardd001")
   expect_true("HOF" %in% players$hof)
 })
+
+test_that("live: Chadwick register maps Retrosheet IDs to MLBAM IDs", {
+  skip_if_not_live()
+  skip_if_offline("github.com")
+  local_temp_cache()
+
+  ids <- suppressMessages(get_chadwick_register())
+
+  expect_gt(nrow(ids), 25000)
+  expect_equal(anyDuplicated(ids$key_retro), 0L)
+  judge <- ids[ids$key_retro == "judga001", ]
+  expect_equal(judge$key_mlbam, 592450L)
+  expect_equal(judge$key_bbref, "judgeaa01")
+})

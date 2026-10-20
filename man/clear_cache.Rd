@@ -8,11 +8,13 @@ clear_cache(year = NULL, type = NULL, confirm = TRUE)
 }
 \arguments{
 \item{year}{Optional. Numeric vector of specific years to remove from cache.
-If NULL (default), removes all cached files.}
+If NULL (default), removes all cached files. The Chadwick register has no
+year, so clearing by year leaves it in place.}
 
 \item{type}{Optional. Character vector of types to remove ("regular",
-"allstar", "post", "gamelog", "schedule"). If NULL (default), removes
-all types.}
+"allstar", "post", "gamelog", "schedule", "register"). If NULL
+(default), removes all types. "register" is the Chadwick register
+downloaded by \code{\link[=get_chadwick_register]{get_chadwick_register()}}.}
 
 \item{confirm}{Logical. If TRUE (default), asks for confirmation before
 deleting. Requires an interactive session; pass \code{confirm = FALSE} in

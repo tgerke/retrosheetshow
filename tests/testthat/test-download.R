@@ -48,3 +48,25 @@ test_that("retro_extract uses a fresh directory per call", {
   withr::defer(unlink(none$dir, recursive = TRUE))
   expect_length(none$files, 0)
 })
+
+test_that("retro_download with force = TRUE replaces the cache only on success", {
+  local_temp_cache()
+  cached <- file.path(cache_dir(), "2024eve.zip")
+  writeLines("old", cached)
+
+  # unreachable: the download fails and the cached copy is left alone
+  expect_error(
+    suppressMessages(
+      retro_download("https://127.0.0.1:9/2024eve.zip", "2024eve.zip", force = TRUE)
+    )
+  )
+  expect_equal(readLines(cached), "old")
+
+  new <- withr::local_tempfile()
+  writeLines("new", new)
+  path <- suppressMessages(
+    retro_download(file_url(new), "2024eve.zip", force = TRUE)
+  )
+  expect_equal(path, cached)
+  expect_equal(readLines(cached), "new")
+})
