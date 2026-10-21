@@ -8,14 +8,21 @@
 #' @param cache_filename Basename under which to store the file in the cache
 #' @param timeout Request timeout in seconds
 #' @param verbose Logical. Print download/cache messages.
+#' @param force Logical. Download even when the file is cached. The cached
+#'   copy is replaced only once the new download succeeds.
 #' @return Path to the local file. When caching is disabled this is a
 #'   tempfile the caller may unlink after use.
 #' @noRd
-retro_download <- function(url, cache_filename, timeout = 60, verbose = TRUE) {
+retro_download <- function(url,
+                           cache_filename,
+                           timeout = 60,
+                           verbose = TRUE,
+                           force = FALSE) {
   use_cache <- caching_enabled()
   cache_path <- file.path(cache_dir(), cache_filename)
 
-  if (use_cache && file.exists(cache_path) && file.size(cache_path) > 0) {
+  if (use_cache && !force &&
+      file.exists(cache_path) && file.size(cache_path) > 0) {
     if (verbose) {
       cli::cli_alert_info("Using cached {.file {cache_filename}}")
     }
@@ -52,11 +59,13 @@ retro_download <- function(url, cache_filename, timeout = 60, verbose = TRUE) {
 #' @param zip_path Path to the zip archive
 #' @param pattern Regular expression matched against extracted filenames
 #'   (case-insensitive)
+#' @param recursive Logical. Also look for matching files in the archive's
+#'   subdirectories.
 #' @return A list with `dir` (the extraction directory, which the caller
 #'   should remove with `unlink(dir, recursive = TRUE)` when done) and
 #'   `files` (full paths of the extracted files matching `pattern`)
 #' @noRd
-retro_extract <- function(zip_path, pattern) {
+retro_extract <- function(zip_path, pattern, recursive = FALSE) {
   exdir <- tempfile("retrosheetshow-")
   dir.create(exdir)
   utils::unzip(zip_path, exdir = exdir, overwrite = TRUE)
@@ -67,6 +76,7 @@ retro_extract <- function(zip_path, pattern) {
       exdir,
       pattern = pattern,
       full.names = TRUE,
+      recursive = recursive,
       ignore.case = TRUE
     )
   )

@@ -140,11 +140,14 @@ reference:
   
   - title: "Reference Data"
     desc: >
-      Download Retrosheet reference data including parks, teams, and player IDs.
+      Download Retrosheet reference data including parks, teams, and player IDs,
+      and the Chadwick register, which maps Retrosheet player IDs to other ID
+      systems.
     contents:
       - get_park_ids
       - get_team_ids
       - get_player_ids
+      - get_chadwick_register
   
   - title: "Cache Management"
     desc: >

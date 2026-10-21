@@ -17,7 +17,8 @@
 #' * [get_rosters()], [list_schedules()], [get_schedules()]
 #' 
 #' **Reference Data**
-#' * [get_park_ids()], [get_team_ids()], [get_player_ids()]
+#' * [get_park_ids()], [get_team_ids()], [get_player_ids()],
+#'   [get_chadwick_register()]
 #' 
 #' **Cache Management**
 #' * [cache_status()], [clear_cache()], [use_cache()]
@@ -29,6 +30,13 @@
 #' at 20 Sunset Rd., Newark, DE 19711.
 #' 
 #' Website: \url{https://www.retrosheet.org}
+#'
+#' @section Chadwick Register Notice:
+#'
+#' [get_chadwick_register()] contains information from the
+#' [Chadwick Baseball Bureau Register](https://github.com/chadwickbureau/register),
+#' which is made available under the
+#' [ODC Attribution License](http://opendatacommons.org/licenses/by/1.0/).
 #'
 #' @section Getting Started:
 #' 

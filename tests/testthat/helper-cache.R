@@ -52,3 +52,52 @@ fake_events_tibble <- function(year, type) {
     url = paste0("https://127.0.0.1:9/", filename)
   )
 }
+
+# Build a zip laid out like GitHub's archive of the Chadwick register: the
+# fixture rows under register-<commit SHA>/data/, split into people-*.csv
+# files by the first character of key_person, as the register shards them.
+# `drop` leaves out the rows with those key_person values, to stand in for
+# another version of the register.
+make_register_zip <- function(path, drop = character()) {
+  skip_if(Sys.which("zip") == "", "zip binary not available")
+
+  lines <- readLines(test_path("fixtures", "chadwick-people-excerpt.csv"))
+  rows <- lines[-1]
+  rows <- rows[!substr(rows, 1, 8) %in% drop]
+
+  stage <- withr::local_tempdir()
+  top <- paste0("register-abc1234", strrep("0", 33))
+  data_dir <- file.path(stage, top, "data")
+  dir.create(data_dir, recursive = TRUE)
+  shard <- substr(rows, 1, 1)
+  for (s in unique(shard)) {
+    writeLines(
+      c(lines[1], rows[shard == s]),
+      file.path(data_dir, paste0("people-", s, ".csv")),
+      useBytes = TRUE
+    )
+  }
+
+  # zip adds to an existing archive rather than replacing it
+  unlink(path)
+  withr::with_dir(stage, utils::zip(path, files = top, flags = "-qr9X"))
+  invisible(path)
+}
+
+# Place a register archive in the cache under the name get_chadwick_register()
+# expects
+seed_register_zip <- function(drop = character()) {
+  make_register_zip(file.path(cache_dir(), "chadwick-register.zip"), drop)
+}
+
+# A file:// URL for a local file, which httr2 downloads through libcurl like
+# any other URL. libcurl wants three slashes before a Windows drive letter
+# too.
+file_url <- function(path) {
+  skip_if_not_installed("curl")
+  skip_if_not(
+    "file" %in% curl::curl_version()$protocols,
+    "libcurl can't read file:// URLs"
+  )
+  paste0("file:///", sub("^/", "", normalizePath(path, winslash = "/")))
+}

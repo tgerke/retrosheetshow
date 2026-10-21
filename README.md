@@ -225,6 +225,62 @@ parks |> filter(grepl("Fenway", name))
 #> 1 BOS07   Fenway Park <NA>  Boston MA    04/20/1912 <NA>  AL     BOS:1912-date;…
 ```
 
+### Player IDs in Other Systems
+
+The [Chadwick Baseball Bureau
+register](https://github.com/chadwickbureau/register) links each
+Retrosheet player ID to the IDs used by MLB Advanced Media (Statcast and
+the MLB Stats API), Baseball-Reference, and FanGraphs.
+`get_chadwick_register()` downloads it once and caches it;
+`refresh = TRUE` fetches the current version.
+
+``` r
+ids <- get_chadwick_register()
+ids
+#> # A tibble: 25,799 × 10
+#>    key_retro key_mlbam key_bbref key_fangraphs key_uuid    key_person name_first
+#>    <chr>         <int> <chr>             <int> <chr>       <chr>      <chr>     
+#>  1 aardd001     430911 aardsda01          1902 6020b1f4-4… 6020b1f4   David     
+#>  2 aaroh101     110001 aaronha01       1000001 5a36cc6f-e… 5a36cc6f   Hank      
+#>  3 aarot101     110002 aaronto01       1000002 a3f2f0b1-6… a3f2f0b1   Tommie    
+#>  4 aased001     110003 aasedo01        1000003 d7b213bc-8… d7b213bc   Don       
+#>  5 abada001     407577 abadan01            506 ec61366b-7… ec61366b   Andy      
+#>  6 abadf001     472551 abadfe01           4994 409c5800-6… 409c5800   Fernando  
+#>  7 abadj101     110004 abadijo01       1000004 14973d8b-c… 14973d8b   John      
+#>  8 abbae101     110005 abbated01       1000005 e51cc3d1-e… e51cc3d1   Ed        
+#>  9 abbeb101     110006 abbeybe01       1000006 19a21d04-e… 19a21d04   Bert      
+#> 10 abbec101     110007 abbeych01       1000007 a84c475d-7… a84c475d   Charlie   
+#> # ℹ 25,789 more rows
+#> # ℹ 3 more variables: name_last <chr>, mlb_played_first <int>,
+#> #   mlb_played_last <int>
+```
+
+``` r
+# MLBAM IDs for the pitchers in the 2024 postseason, ready to join to
+# Statcast data
+states |>
+  distinct(pitcher_id) |>
+  left_join(ids, by = c(pitcher_id = "key_retro")) |>
+  select(pitcher_id, key_mlbam, name_first, name_last)
+#> # A tibble: 139 × 4
+#>    pitcher_id key_mlbam name_first name_last
+#>    <chr>          <int> <chr>      <chr>    
+#>  1 rodoc001      607074 Carlos     Rodón    
+#>  2 cobba001      502171 Alex       Cobb     
+#>  3 cantj002      676282 Joey       Cantillo 
+#>  4 avilp001      658648 Pedro      Avila    
+#>  5 sabre001      681870 Erik       Sabrowski
+#>  6 holmc001      605280 Clay       Holmes   
+#>  7 hillt002      657612 Tim        Hill     
+#>  8 weavl001      596133 Luke       Weaver   
+#>  9 walta001      689958 Andrew     Walters  
+#> 10 coleg001      543037 Gerrit     Cole     
+#> # ℹ 129 more rows
+```
+
+The register comes with its own license; see [Chadwick Register
+Attribution](#chadwick-register-attribution).
+
 ## Workflow Example
 
 A complete workflow to analyze recent World Series games:
@@ -341,6 +397,15 @@ or [donate](https://www.retrosheet.org/donate/index.html).
 
 The retrosheetshow package is not affiliated with Retrosheet but is
 grateful for their work in preserving baseball history.
+
+## Chadwick Register Attribution
+
+`get_chadwick_register()` contains information from the [Chadwick
+Baseball Bureau Register](https://github.com/chadwickbureau/register),
+which is made available under the [ODC Attribution
+License](http://opendatacommons.org/licenses/by/1.0/). If you publish
+work that uses it, the license asks you to include a notice like this
+one.
 
 ## Related Resources
 

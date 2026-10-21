@@ -31,7 +31,8 @@ integration into data analysis workflows.
 
 \strong{Reference Data}
 \itemize{
-\item \code{\link[=get_park_ids]{get_park_ids()}}, \code{\link[=get_team_ids]{get_team_ids()}}, \code{\link[=get_player_ids]{get_player_ids()}}
+\item \code{\link[=get_park_ids]{get_park_ids()}}, \code{\link[=get_team_ids]{get_team_ids()}}, \code{\link[=get_player_ids]{get_player_ids()}},
+\code{\link[=get_chadwick_register]{get_chadwick_register()}}
 }
 
 \strong{Cache Management}
@@ -48,6 +49,15 @@ and is copyrighted by Retrosheet. Interested parties may contact Retrosheet
 at 20 Sunset Rd., Newark, DE 19711.
 
 Website: \url{https://www.retrosheet.org}
+}
+
+\section{Chadwick Register Notice}{
+
+
+\code{\link[=get_chadwick_register]{get_chadwick_register()}} contains information from the
+\href{https://github.com/chadwickbureau/register}{Chadwick Baseball Bureau Register},
+which is made available under the
+\href{http://opendatacommons.org/licenses/by/1.0/}{ODC Attribution License}.
 }
 
 \section{Getting Started}{

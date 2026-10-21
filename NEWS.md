@@ -2,6 +2,14 @@
 
 ## New features
 
+* New `get_chadwick_register()` maps Retrosheet player IDs to the IDs used
+  by MLB Advanced Media (Statcast and the MLB Stats API),
+  Baseball-Reference, and FanGraphs, from the Chadwick Baseball Bureau's
+  register. The register is downloaded once and cached: `refresh = TRUE`
+  replaces the cached copy with the current version, `cache_status()` lists
+  it, and `clear_cache(type = "register")` removes it. On the register of 2
+  October 2026, every player on the 1954, 1988, 2024, and 2025 Retrosheet
+  rosters has an MLBAM ID.
 * `track_game_state()` now reports the defense on every play: the pitcher
   (`pitcher_id`) and the fielders at positions 2-9 (`fielder2_id` through
   `fielder9_id`), followed through double switches, position changes,
