@@ -27,7 +27,7 @@ library(dplyr)
 
 **retrosheetshow** provides a convenient and tidy interface for accessing [Retrosheet](https://www.retrosheet.org) baseball data in R. This vignette gets you started with the basic functionality.
 
-Because every function downloads data from Retrosheet, the code chunks in this vignette are not evaluated when the package is built. The tables shown are real outputs captured from the 2024 season.
+Because every function downloads its data from the web, the code chunks in this vignette are not evaluated when the package is built. The tables shown are real outputs captured from the 2024 season and the 2 October 2026 version of the Chadwick register.
 
 ```{r setup, eval = FALSE}
 library(retrosheetshow)
@@ -215,6 +215,10 @@ teams <- get_team_ids(2024)
 
 # Player biographical database
 players <- get_player_ids()
+
+# Retrosheet player IDs mapped to MLBAM (Statcast), Baseball-Reference,
+# and FanGraphs IDs, from the Chadwick Baseball Bureau's register
+ids <- get_chadwick_register()
 ```
 
 ```{r, echo = FALSE}
@@ -228,6 +232,19 @@ tribble(
   knitr::kable(caption = "Ballpark reference data (selected parks)")
 ```
 
+```{r, echo = FALSE}
+tribble(
+  ~key_retro, ~key_mlbam, ~key_bbref, ~key_fangraphs, ~name_first, ~name_last,
+  "freef001", 518692L, "freemfr01", 5361L, "Freddie", "Freeman",
+  "judga001", 592450L, "judgeaa01", 15640L, "Aaron", "Judge",
+  "ohtas001", 660271L, "ohtansh01", 19755L, "Shohei", "Ohtani",
+  "sotoj001", 665742L, "sotoju01", 20123L, "Juan", "Soto"
+) |>
+  knitr::kable(caption = "Player IDs from the Chadwick register (selected players and columns)")
+```
+
+Join on `key_retro` to attach these IDs to Retrosheet data, for example `left_join(ids, by = c(pitcher_id = "key_retro"))` on the output of `track_game_state()`.
+
 ## Caching
 
 Downloads are cached under `tools::R_user_dir("retrosheetshow", "cache")`, so repeated calls for the same year read from disk instead of the network:
@@ -238,13 +255,14 @@ cache_status()
 
 # Remove cached files (by year/type, or everything)
 clear_cache(year = 2024, type = "regular")
+clear_cache(type = "register")
 clear_cache()
 
 # Disable caching for this session
 use_cache(FALSE)
 ```
 
-Regular-season event archives are the largest downloads (a few MB compressed per season); game logs and schedules are much smaller. If a download is interrupted, nothing is written to the cache, so simply retry.
+The largest single download is the Chadwick register, about 28 MB covering every season. Chadwick updates it periodically, so `get_chadwick_register(refresh = TRUE)` replaces the cached copy with the current version. Regular-season event archives are a few MB compressed per season; game logs and schedules are much smaller. If a download is interrupted, nothing is written to the cache, so simply retry.
 
 ## Complete Example
 
@@ -283,3 +301,7 @@ tibble(games = 162L, wins = 94L, win_pct = 0.58) |>
 Remember to cite Retrosheet when using this data:
 
 > The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
+
+The player IDs from `get_chadwick_register()` come with their own notice:
+
+> Contains information from the [Chadwick Baseball Bureau Register](https://github.com/chadwickbureau/register), which is made available under the [ODC Attribution License](http://opendatacommons.org/licenses/by/1.0/).
