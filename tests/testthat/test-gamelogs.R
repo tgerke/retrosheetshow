@@ -39,3 +39,16 @@ test_that("read_gamelog_file types scores and counting stats", {
   expect_type(logs$winning_pitcher_name, "character")
   expect_type(logs$park_id, "character")
 })
+
+test_that("get_gamelogs pluralizes the game count in its summary", {
+  local_temp_cache()
+  seed_cache_zip(2024, "gamelog", c(GL2024.TXT = "gl2024-excerpt.txt"))
+
+  # expect_message() lets the unmatched progress messages bubble up
+  suppressMessages(
+    expect_message(
+      get_gamelogs(gamelogs = fake_events_tibble(2024, "gamelog")),
+      "Downloaded 3 games"
+    )
+  )
+})

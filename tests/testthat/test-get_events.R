@@ -93,3 +93,16 @@ test_that("a failed download warns and returns remaining data", {
   expect_equal(nrow(out), 106)
   expect_true(all(out$year == 2024))
 })
+
+test_that("get_events pluralizes the record count in its summary", {
+  local_temp_cache()
+  seed_event_zip(2024, "post")
+
+  # expect_message() lets the unmatched progress messages bubble up
+  suppressMessages(
+    expect_message(
+      get_events(events = fake_events_tibble(2024, "post")),
+      "Downloaded and parsed 106 records"
+    )
+  )
+})

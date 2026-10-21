@@ -40,3 +40,13 @@ test_that("get_rosters extracts rosters from a cached event archive", {
   )
   expect_equal(nrow(none), 0)
 })
+
+test_that("get_rosters pluralizes the player count in its summary", {
+  local_temp_cache()
+  seed_event_zip(2024, "regular", include_rosters = TRUE)
+
+  # expect_message() lets the unmatched progress messages bubble up
+  suppressMessages(
+    expect_message(get_rosters(year = 2024), "Extracted 8 players from 1 team")
+  )
+})

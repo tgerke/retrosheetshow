@@ -48,3 +48,19 @@ test_that("read_schedule_file rejects unknown layouts", {
     "Unexpected schedule format"
   )
 })
+
+test_that("get_schedules pluralizes the game count in its summary", {
+  local_temp_cache()
+  seed_cache_zip(
+    2024, "schedule",
+    c("2024schedule.csv" = "2024schedule-excerpt.csv")
+  )
+
+  # expect_message() lets the unmatched progress messages bubble up
+  suppressMessages(
+    expect_message(
+      get_schedules(schedules = fake_events_tibble(2024, "schedule")),
+      "Downloaded 3 scheduled games"
+    )
+  )
+})
