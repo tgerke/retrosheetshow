@@ -25,7 +25,7 @@ library(dplyr)
 
 Play-by-play events are what make Retrosheet special: no other freely available source describes every play of (nearly) every major league game for over a century. This article shows how to turn that notation into batting statistics, splits, and historical reconstructions with `parse_plays()`.
 
-Because everything downloads from Retrosheet, the code chunks are not evaluated at build time; the tables shown are real outputs from the 2024 and 1954 postseasons.
+Because everything downloads from the web, the code chunks are not evaluated at build time; the tables shown are real outputs from the 2024 and 1954 postseasons.
 
 ## From notation to typed columns
 
@@ -282,6 +282,36 @@ tribble(
 
 State columns are validated against Chadwick's `cwevent` the same way the parser is: on the golden files and in full-season cross-checks of 1954, 2024, and 2025, the outs, scores, runners, pitcher, fielders, and responsible pitcher and batter agreed on every one of ~480,000 events. Knowing the out count also lets `track_game_state()` apply the one scoring rule the string-level parser cannot — no RBI for a runner from third scoring on an error with two outs — so its `rbi` column is exact.
 
+## Linking to Statcast and other sources
+
+Every player in these tables is identified by Retrosheet ID. Other sources use their own: Statcast's pitch-tracking data identifies batters and pitchers by MLBAM ID, the ID system of MLB Advanced Media. `get_chadwick_register()` maps one to the other, along with Baseball-Reference and FanGraphs IDs, using the Chadwick Baseball Bureau's register of people in baseball:
+
+```{r, eval = FALSE}
+ids <- get_chadwick_register()
+
+states |>
+  filter(game_id == "LAN202410250", inning == 10, event_type == "home_run") |>
+  select(player_id, pitcher_id) |>
+  left_join(
+    select(ids, player_id = key_retro, batter_mlbam = key_mlbam),
+    by = "player_id"
+  ) |>
+  left_join(
+    select(ids, pitcher_id = key_retro, pitcher_mlbam = key_mlbam),
+    by = "pitcher_id"
+  )
+```
+
+```{r, echo = FALSE}
+tribble(
+  ~player_id, ~pitcher_id, ~batter_mlbam, ~pitcher_mlbam,
+  "freef001", "cortn001", 518692L, 641482L
+) |>
+  knitr::kable(caption = "Freeman's grand slam, with the MLBAM IDs Statcast uses")
+```
+
+With those IDs, the same plate appearance can be matched in Statcast's pitch-by-pitch data. The register is a single download of about 28 MB, cached like everything else. Chadwick updates it periodically, and `get_chadwick_register(refresh = TRUE)` replaces the cached copy with the current version.
+
 ## Run expectancy
 
 With base-out states attached, the classic RE24 matrix is a dozen lines: for each play, count the runs scored from that point to the end of the half-inning, then average by starting state.
@@ -344,6 +374,7 @@ If you use `parse_plays()` without `track_game_state()`, keep in mind:
 ## See Also
 
 - `?parse_plays` and `?track_game_state` for the full column references
+- `?get_chadwick_register` for the player ID columns and how to join on them
 - The **Retrosheet Format Reference** article for the notation itself
 - The **Getting Started** article for downloading and extracting events
 
@@ -352,3 +383,7 @@ If you use `parse_plays()` without `track_game_state()`, keep in mind:
 Remember to cite Retrosheet when using this data:
 
 > The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.
+
+The player IDs from `get_chadwick_register()` come with their own notice:
+
+> Contains information from the [Chadwick Baseball Bureau Register](https://github.com/chadwickbureau/register), which is made available under the [ODC Attribution License](http://opendatacommons.org/licenses/by/1.0/).
