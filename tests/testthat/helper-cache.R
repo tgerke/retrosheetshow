@@ -39,6 +39,22 @@ seed_event_zip <- function(year,
   invisible(zip_path)
 }
 
+# Zip fixture files into the cache under the filename retro_download()
+# expects for `type`. names(fixtures) are the file names inside the archive.
+seed_cache_zip <- function(year, type, fixtures, env = parent.frame()) {
+  skip_if(Sys.which("zip") == "", "zip binary not available")
+
+  stage <- withr::local_tempdir(.local_envir = env)
+  file.copy(test_path("fixtures", fixtures), file.path(stage, names(fixtures)))
+
+  zip_path <- cache_file_path(year, type)
+  withr::with_dir(
+    stage,
+    utils::zip(zip_path, files = names(fixtures), flags = "-q9X")
+  )
+  invisible(zip_path)
+}
+
 # A tibble in the shape list_events() returns, pointing at an unreachable
 # host: downloads must be served from the seeded cache
 fake_events_tibble <- function(year, type) {
