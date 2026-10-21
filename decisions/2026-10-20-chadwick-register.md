@@ -5,9 +5,8 @@ Context: phase 3 of the times-through-the-order (TTOP) work, in the separate
 spin, release point) to model when managers pull starters. Savant identifies
 players by MLBAM ID, so `ttop` needs a map from Retrosheet IDs to MLBAM IDs.
 On 2026-10-20 that map came into this package as `get_chadwick_register()`.
-It follows the scope in `2026-10-19-model-scope.md` (on branch
-`claude/blissful-hopper-1f34de`, not yet on main): models live outside the
-package, and data access lives in it. Development was LLM-assisted, so the
+It follows the scope in `2026-10-19-model-scope.md`: models live outside
+the package, and data access lives in it. Development was LLM-assisted, so the
 register's file layout, columns, update history, and license were checked
 against its repository and the license text on 2026-10-20 rather than taken
 from memory.
