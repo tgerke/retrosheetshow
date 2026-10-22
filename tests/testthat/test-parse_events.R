@@ -48,6 +48,53 @@ test_that("parse_event_file handles quoted and empty fields", {
   expect_identical(tiebreaker$f2, c(NA_character_, NA_character_))
 })
 
+test_that("parse_event_file reads a curly quote as a straight one", {
+  # One game from 1976BAL.EVA. Lines 98 and 99 are comments opened with a
+  # curly quote; the second is closed with a straight one, which used to
+  # swallow every record after it.
+  fixture <- test_path("fixtures", "1976BAL-excerpt.EVA")
+  raw <- parse_event_file(fixture, year = 1976)
+
+  expect_equal(nrow(raw), 170)
+  expect_true(all(raw$game_id == "BAL197607180"))
+
+  com <- raw[raw$line_number %in% 98:99, ]
+  expect_equal(com$record_type, c("com", "com"))
+  expect_equal(
+    com$f1,
+    c(
+      "After walking, Belanger nearly picked off but got back safely",
+      "after poor throw by Briggs in rundown"
+    )
+  )
+  expect_true(all(is.na(com$f2)))
+
+  # every other record parses as it does in a copy without the two comments
+  lines <- readLines(fixture)
+  without <- withr::local_tempfile(lines = lines[-(98:99)])
+  expected <- parse_event_file(without, year = 1976)
+  expect_equal(
+    dplyr::select(raw[-(98:99), ], -"line_number"),
+    dplyr::select(expected, -"line_number")
+  )
+  expect_equal(raw$f6[raw$line_number == 100], "E5.1-2")
+})
+
+test_that("parse_event_file closes a quote left open at the end of its line", {
+  file <- withr::local_tempfile(lines = c(
+    "id,TST197604080",
+    "com,\"never closed, so the comma is part of the comment",
+    "play,1,0,abcda001,??,,S8",
+    "sub,efghb001,\"Bob Efgh\",0,1,8"
+  ))
+  raw <- parse_event_file(file, year = 1976)
+
+  expect_equal(raw$record_type, c("id", "com", "play", "sub"))
+  expect_equal(raw$f1[2], "never closed, so the comma is part of the comment")
+  expect_equal(raw$f6[3], "S8")
+  expect_equal(raw$f2[4], "Bob Efgh")
+})
+
 test_that("parse_event_records types play records", {
   plays <- parse_event_records(fixture_events(), record_types = "play")
 

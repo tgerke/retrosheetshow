@@ -113,20 +113,36 @@ get_events <- function(events = NULL,
           return(tibble::tibble())
         }
 
-        all_events <- purrr::map_dfr(extracted$files, function(file) {
+        # lapply() rather than purrr::map_dfr(), which would wrap a parse
+        # error in its own error and hide the class the handler below expects
+        all_events <- dplyr::bind_rows(lapply(extracted$files, function(file) {
           if (parse) {
-            parse_event_file(file, year = yr)
+            tryCatch(
+              parse_event_file(file, year = yr),
+              error = function(e) {
+                cli::cli_abort(
+                  "{conditionMessage(e)}",
+                  file = basename(file),
+                  class = "retrosheetshow_parse_error"
+                )
+              }
+            )
           } else {
             tibble::tibble(
               year = yr,
               content = readr::read_lines(file, lazy = FALSE)
             )
           }
-        })
+        }))
 
         all_events$type <- event_type
         all_events
 
+      }, retrosheetshow_parse_error = function(e) {
+        cli::cli_warn(
+          "Failed to parse {e$file} in {yr} {event_type} events: {e$message}"
+        )
+        tibble::tibble()
       }, error = function(e) {
         cli::cli_warn("Failed to download {yr} {event_type} events: {e$message}")
         tibble::tibble()
@@ -149,20 +165,47 @@ get_events <- function(events = NULL,
 #' contain quoted commas) into one row per record, with the record's fields in
 #' character columns `f1`, `f2`, ... Fields a record doesn't have are NA.
 #'
+#' A record never spans lines, but `read.csv()` lets a quoted field run on
+#' into the next line, so one stray quote would swallow every record after
+#' it. The quotes are therefore paired up line by line first: a curly double
+#' quote that opens or closes a field is read as a straight one, and a quote
+#' still open at the end of a line is closed there. Lines with neither
+#' problem reach `read.csv()` unchanged.
+#'
 #' @param file Path to an event file (.EVA/.EVN/.EVE)
 #' @param year Year of the data
 #' @noRd
 parse_event_file <- function(file, year) {
 
+  lines <- readLines(file, warn = FALSE)
+  # 1976BAL.EVA has comments opened with a curly quote and closed with a
+  # straight one
+  lines <- gsub(
+    "(^|,)(\u201c|\u201d)", "\\1\"", lines, perl = TRUE, useBytes = TRUE
+  )
+  lines <- gsub(
+    "(\u201c|\u201d)(,|$)", "\"\\2", lines, perl = TRUE, useBytes = TRUE
+  )
+  n_quotes <- nchar(lines, type = "bytes") -
+    nchar(gsub("\"", "", lines, fixed = TRUE, useBytes = TRUE), type = "bytes")
+  unclosed <- n_quotes %% 2 == 1
+  lines[unclosed] <- paste0(lines[unclosed], "\"")
+
+  # Not read.csv(text = ), which marks non-ASCII strings as UTF-8: reading
+  # from a file returns them exactly as reading the event file itself does
+  paired <- tempfile(fileext = ".csv")
+  on.exit(unlink(paired), add = TRUE)
+  writeLines(lines, paired, useBytes = TRUE)
+
   # Play records have 7 fields (the most of any standard record type); size
   # the read to the widest record actually present
   n_fields <- max(
     7L,
-    utils::count.fields(file, sep = ",", quote = "\"", comment.char = "")
+    utils::count.fields(paired, sep = ",", quote = "\"", comment.char = "")
   )
 
   raw <- utils::read.csv(
-    file,
+    paired,
     header = FALSE,
     fill = TRUE,
     quote = "\"",
