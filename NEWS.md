@@ -61,6 +61,14 @@
 
 ## Bug fixes
 
+* `get_events()` now reads event files that contain a stray or curly
+  quote. In `1976BAL.EVA` a comment that opens with a curly quote and
+  closes with a straight one swallowed the rest of the file, leaving the
+  1976 regular season with no records. Quotes are paired up line by line,
+  so a bad quote affects only its own record, and files without one parse
+  exactly as before (checked on 55 other regular seasons and 12
+  postseasons, 1952-2025). A file that still can't be parsed gets a
+  warning that names it, instead of one about a failed download.
 * `parse_plays()` now reads the older hit location codes that contain an R
   (`8RS`, `8RXD`, `2RF`), along with the trajectory before them. About 5,700
   plays in 1993 and 9,000 in 1999 gain a `hit_location` and `trajectory`;

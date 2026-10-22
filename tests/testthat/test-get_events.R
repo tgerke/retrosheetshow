@@ -94,6 +94,38 @@ test_that("a failed download warns and returns remaining data", {
   expect_true(all(out$year == 2024))
 })
 
+test_that("a curly quote in an event file doesn't empty the season", {
+  local_temp_cache()
+  seed_cache_zip(1976, "regular", c("1976BAL.EVA" = "1976BAL-excerpt.EVA"))
+
+  # regression: 1976 came back with no records and a warning blaming the
+  # download
+  expect_no_warning(
+    out <- suppressMessages(
+      get_events(events = fake_events_tibble(1976, "regular"), verbose = FALSE)
+    )
+  )
+  expect_equal(nrow(out), 170)
+})
+
+test_that("a parse failure warns naming the file, not the download", {
+  local_temp_cache()
+  seed_event_zip(2024, "post")
+  local_mocked_bindings(
+    parse_event_file = function(file, year) stop("line 12 is malformed")
+  )
+
+  expect_warning(
+    out <- suppressMessages(
+      get_events(events = fake_events_tibble(2024, "post"), verbose = FALSE)
+    ),
+    "Failed to parse 2024ALCS.EVE in 2024 post events: line 12 is malformed",
+    fixed = TRUE
+  )
+  # as with a failed download, nothing from that year and type comes back
+  expect_equal(nrow(out), 0)
+})
+
 test_that("get_events pluralizes the record count in its summary", {
   local_temp_cache()
   seed_event_zip(2024, "post")
